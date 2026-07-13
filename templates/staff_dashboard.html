@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Guide Dashboard - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold" style="color: var(--primary-color);">Welcome, {{ profile.name }}!</h2>
+        <p class="text-muted">You are logged in as a registered Trek Guide. Below are the treks assigned to you by the administrator.</p>
+    </div>
+</div><div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="m-0 fw-bold">Assigned Treks Participant Overview</h4>
+            </div>
+            <div class="card-body">
+                {% if treks %}
+                    <div style="height: 250px; position: relative;">
+                        <canvas id="staffChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        No active treks to visualize.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="m-0 fw-bold">My Assigned Treks</h4>
+            </div>
+            <div class="card-body">
+                {% if treks %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Trek ID</th>
+                                    <th>Trek Name</th>
+                                    <th>Location</th>
+                                    <th>Date Schedule</th>
+                                    <th>Participants Count</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trek in treks %}
+                                    <tr>
+                                        <td><code>#{{ trek.id }}</code></td>
+                                        <td><strong>{{ trek.name }}</strong></td>
+                                        <td>{{ trek.location }}</td>
+                                        <td>
+                                            <span class="small">{{ trek.start_date }} to {{ trek.end_date }}</span>
+                                            <span class="badge bg-light text-dark ms-1">{{ trek.duration }} days</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success fs-6">{{ trek.participant_count }}</span>
+                                        </td>
+                                        <td>
+                                            {% if trek.status == 'Open' %}
+                                                <span class="badge bg-success">Open</span>
+                                            {% elif trek.status == 'Closed' %}
+                                                <span class="badge bg-danger">Closed</span>
+                                            {% elif trek.status == 'Started' %}
+                                                <span class="badge bg-info">Started</span>
+                                            {% elif trek.status == 'Completed' %}
+                                                <span class="badge bg-secondary">Completed</span>
+                                            {% elif trek.status == 'Approved' %}
+                                                <span class="badge bg-primary">Approved</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="{{ url_for('staff_trek_detail', trek_id=trek.id) }}" class="btn btn-primary btn-sm">
+                                                Manage Trek &rarr;
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <p class="fs-1 m-0">🧭</p>
+                        <p class="m-0">You have no active trek assignments at the moment.</p>
+                        <p class="small text-muted mt-1">Please contact the Administrator to get assigned to a trail.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    {% if treks %}
+    const trekNames = [];
+    const participantCounts = [];
+    {% for trek in treks %}
+        trekNames.push("{{ trek.name }}");
+        participantCounts.push({{ trek.participant_count }});
+    {% endfor %}
+    
+    const ctx = document.getElementById('staffChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: trekNames,
+            datasets: [{
+                label: 'Registered Trekkers',
+                data: participantCounts,
+                backgroundColor: '#40916c',
+                borderWidth: 0,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}
