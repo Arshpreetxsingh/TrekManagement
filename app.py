@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from functools import wraps
 # Milestone: Charts and Visualization
 # Milestone: Frontend and Backend Validation
+# Milestone: Flask-Login Integration and Security
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import create_db_session, prepare_database
