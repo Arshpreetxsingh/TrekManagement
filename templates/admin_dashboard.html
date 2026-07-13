@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold" style="color: var(--primary-color);">System Overview</h2>
+        <p class="text-muted">Monitor treks, staff guides, users, and booking activities.</p>
+    </div>
+</div>
+
+
+<div class="row mb-5">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card p-3">
+            <div class="stat-card-title">Total Treks</div>
+            <div class="stat-card-value">{{ stats.total_treks }}</div>
+            <a href="{{ url_for('admin_treks') }}" class="text-white text-decoration-none small mt-2 d-inline-block">Manage Treks &rarr;</a>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card p-3" style="background: linear-gradient(135deg, var(--secondary-color), #2d6a4f);">
+            <div class="stat-card-title">Total Bookings</div>
+            <div class="stat-card-value">{{ stats.total_bookings }}</div>
+            <a href="{{ url_for('admin_bookings') }}" class="text-white text-decoration-none small mt-2 d-inline-block">View Bookings &rarr;</a>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card p-3" style="background: linear-gradient(135deg, #40916c, #52b788);">
+            <div class="stat-card-title">Registered Trekkers</div>
+            <div class="stat-card-value">{{ stats.total_trekkers }}</div>
+            <a href="{{ url_for('admin_users') }}" class="text-white text-decoration-none small mt-2 d-inline-block">Manage Trekkers &rarr;</a>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card p-3" style="background: linear-gradient(135deg, #1b4332, #2d6a4f);">
+            <div class="stat-card-title">Trek Staff Guides</div>
+            <div class="stat-card-value">{{ stats.total_staff }}</div>
+            <a href="{{ url_for('admin_staff') }}" class="text-white text-decoration-none small mt-2 d-inline-block">Manage Staff &rarr;</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="m-0 fw-bold">Platform Stats Overview</h4>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px; position: relative;">
+                    <canvas id="adminChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="m-0 fw-bold">Pending Staff Registration Requests</h4>
+                <span class="badge bg-warning text-dark">{{ pending_staff|length }} pending</span>
+            </div>
+            <div class="card-body">
+                {% if pending_staff %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Real Name</th>
+                                    <th>Contact Info</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for staff in pending_staff %}
+                                    <tr>
+                                        <td><strong>{{ staff.username }}</strong></td>
+                                        <td>{{ staff.name }}</td>
+                                        <td>{{ staff.contact_details }}</td>
+                                        <td class="text-end">
+                                            <form action="{{ url_for('admin_approve_staff', user_id=staff.user_id) }}" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-success btn-sm me-1">Approve</button>
+                                            </form>
+                                            <form action="{{ url_for('admin_reject_staff', user_id=staff.user_id) }}" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to reject and remove this applicant?');">Reject</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <span class="fs-2 mb-2 d-block">🎉</span>
+                        <p class="m-0">No pending staff guide applications to review.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="m-0 fw-bold">Admin Actions</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admin_treks') }}" class="btn btn-primary text-start">
+                        🌲 Add / Edit Trek Routes
+                    </a>
+                    <a href="{{ url_for('admin_staff') }}" class="btn btn-secondary text-start">
+                        🧭 Manage Guides & Assignments
+                    </a>
+                    <a href="{{ url_for('admin_users') }}" class="btn btn-outline-dark text-start">
+                        👥 View & Blacklist Users
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('adminChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Total Treks', 'Total Bookings', 'Registered Trekkers', 'Trek Staff Guides'],
+            datasets: [{
+                label: 'System Metrics',
+                data: [{{ stats.total_treks }}, {{ stats.total_bookings }}, {{ stats.total_trekkers }}, {{ stats.total_staff }}],
+                backgroundColor: [
+                    '#1b4332',
+                    '#40916c',
+                    '#52b788',
+                    '#74c69d'
+                ],
+                borderWidth: 0,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

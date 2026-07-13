@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Blacklist Directory - Admin - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row mb-4 fade-in">
+    <div class="col">
+        <h2 class="fw-bold text-danger">Blacklist management</h2>
+        <p class="text-muted">Manage restricted accounts for both Trekkers and Staff Guides. Reactivate them to restore system access.</p>
+    </div>
+</div>
+
+<div class="row fade-in">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header p-0 border-bottom">
+                <ul class="nav nav-tabs border-0" id="blacklistTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active px-4 py-3 border-0 fw-bold" id="trekkers-tab" data-bs-toggle="tab" data-bs-target="#trekkers" type="button" role="tab" aria-controls="trekkers" aria-selected="true" style="color: var(--primary-color);">
+                            🛡️ Blacklisted Trekkers ({{ trekkers|length }})
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link px-4 py-3 border-0 fw-bold" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff" type="button" role="tab" aria-controls="staff" aria-selected="false" style="color: var(--primary-color);">
+                            🧭 Blacklisted Staff & Guides ({{ staff|length }})
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="blacklistTabsContent">
+                    <div class="tab-pane fade show active" id="trekkers" role="tabpanel" aria-labelledby="trekkers-tab">
+                        {% if trekkers %}
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Username & Details</th>
+                                            <th>Contact Info</th>
+                                            <th>Registration Date</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for user in trekkers %}
+                                            <tr>
+                                                <td><code>#{{ user.id }}</code></td>
+                                                <td>
+                                                    <div><strong class="text-danger">{{ user.username }}</strong></div>
+                                                    <div class="small text-muted">{{ user.name or '' }}</div>
+                                                    {% if user.age or user.gender %}
+                                                        <div class="small text-secondary mt-1" style="font-size: 0.8rem;">
+                                                            {{ user.age or 'N/A' }} yrs old &bull; {{ user.gender or 'N/A' }}
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="small">📞 {{ user.phone or 'N/A' }}</div>
+                                                    <div class="small">✉️ {{ user.email or 'N/A' }}</div>
+                                                    <div class="small">📍 {{ user.location or 'N/A' }}</div>
+                                                </td>
+                                                <td><span class="small">{{ user.created_at }}</span></td>
+                                                <td class="text-end">
+                                                    <form action="{{ url_for('admin_toggle_blacklist_user', user_id=user.id) }}" method="POST" class="d-inline">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success px-3" onclick="return confirm('Are you sure you want to reactivate this trekker? They will be able to log in and book treks again.');">
+                                                            Unblacklist / Activate
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <span class="fs-1 d-block mb-2">🛡️</span>
+                                <p class="m-0 fw-semibold">No trekkers are currently blacklisted.</p>
+                                <p class="small">All registered trekker accounts are in active/good standing.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="tab-pane fade" id="staff" role="tabpanel" aria-labelledby="staff-tab">
+                        {% if staff %}
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Username & Details</th>
+                                            <th>Contact Details</th>
+                                            <th>Experience & Qualifications</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for member in staff %}
+                                            <tr>
+                                                <td><code>#{{ member.user_id }}</code></td>
+                                                <td>
+                                                    <div><strong class="text-danger">{{ member.username }}</strong></div>
+                                                    <div class="small text-muted">{{ member.name }}</div>
+                                                    {% if member.age or member.gender %}
+                                                        <div class="small text-secondary mt-1" style="font-size: 0.8rem;">
+                                                            {{ member.age or 'N/A' }} yrs old &bull; {{ member.gender or 'N/A' }}
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="small">{{ member.contact_details }}</span>
+                                                    {% if member.emergency_contact %}
+                                                        <div class="small mt-1 text-muted"><strong>ICE:</strong> {{ member.emergency_contact }}</div>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="small text-muted" style="max-width: 300px; white-space: normal;">
+                                                        {{ member.experience or 'No experience details recorded.' }}
+                                                    </div>
+                                                </td>
+                                                <td class="text-end">
+                                                    <form action="{{ url_for('admin_toggle_blacklist_staff', user_id=member.user_id) }}" method="POST" class="d-inline">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success px-3" onclick="return confirm('Are you sure you want to reactivate this staff member? They will be able to manage assigned treks again.');">
+                                                            Unblacklist / Approve
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <span class="fs-1 d-block mb-2">🧭</span>
+                                <p class="m-0 fw-semibold">No staff guides are currently blacklisted.</p>
+                                <p class="small">All registered guide staff accounts are in active/good standing.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

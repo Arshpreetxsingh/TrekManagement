@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Staff - Admin - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold" style="color: var(--primary-color);">Staff Guide Management</h2>
+        <p class="text-muted">Approve new guide registrations, blacklist/deactivate guides, or assign them to scheduled treks.</p>
+    </div>
+</div>
+
+<div class="row">
+
+    <div class="col-lg-4 mb-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="m-0 fw-bold">🧭 Assign Staff to Trek</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('admin_assign_staff') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="trek_id" class="form-label fw-semibold">Select Trek</label>
+                        <select class="form-select" id="trek_id" name="trek_id" required>
+                            <option value="">-- Choose Trek --</option>
+                            {% for trek in treks %}
+                                <option value="{{ trek.id }}">
+                                    {{ trek.name }} ({{ trek.location }} - {{ trek.status }})
+                                    {% if trek.guide_name %}
+                                        [Current: {{ trek.guide_name }}]
+                                    {% else %}
+                                        [No Guide Assigned]
+                                    {% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="staff_id" class="form-label fw-semibold">Select Guide Staff</label>
+                        <select class="form-select" id="staff_id" name="staff_id" required>
+                            <option value="">-- Choose Guide --</option>
+                            {% for guide in active_guides %}
+                                <option value="{{ guide.user_id }}">{{ guide.name }} (@{{ guide.username }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-2">Assign Guide</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="alert alert-info small" role="alert">
+            <strong>Staff Status Guide:</strong>
+            <ul class="m-0 ps-3 mt-1">
+                <li><strong>Approved:</strong> Can access dashboard and manage assigned treks.</li>
+                <li><strong>Pending:</strong> Awaiting admin approval. Cannot log in yet.</li>
+                <li><strong>Blacklisted:</strong> Account blocked. Cannot access system.</li>
+            </ul>
+        </div>
+    </div>
+
+
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="m-0 fw-bold">Staff Directory</h4>
+                <form action="{{ url_for('admin_staff') }}" method="GET" class="d-flex" style="width: 250px;">
+                    <input type="text" name="search" class="form-control form-control-sm me-2" placeholder="Search by name or ID" value="{{ search_query or '' }}">
+                    <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                </form>
+            </div>
+            <div class="card-body">
+                {% if staff_list %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Real Name</th>
+                                    <th>Contact Details</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for staff in staff_list %}
+                                    <tr>
+                                        <td><code>#{{ staff.user_id }}</code></td>
+                                        <td><strong>{{ staff.username }}</strong></td>
+                                        <td>{{ staff.name }}</td>
+                                        <td>
+                                            <span class="small">{{ staff.contact_details }}</span>
+                                            {% if staff.age or staff.gender or staff.emergency_contact or staff.experience %}
+                                                <div class="mt-2 pt-2 border-top text-muted" style="font-size: 0.8rem; line-height: 1.4;">
+                                                    {% if staff.age or staff.gender %}
+                                                        <div><strong>Details:</strong> {{ staff.age or 'N/A' }} yrs old &bull; {{ staff.gender or 'N/A' }}</div>
+                                                    {% endif %}
+                                                    {% if staff.emergency_contact %}
+                                                        <div><strong>Emergency Contact:</strong> {{ staff.emergency_contact }}</div>
+                                                    {% endif %}
+                                                    {% if staff.experience %}
+                                                        <div class="mt-1" style="max-height: 60px; overflow-y: auto; max-width: 280px; white-space: normal;">
+                                                            <strong>Experience:</strong> {{ staff.experience }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if staff.status == 'Approved' %}
+                                                <span class="badge bg-success">Approved</span>
+                                            {% elif staff.status == 'Blacklisted' %}
+                                                <span class="badge bg-danger">Blacklisted</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if staff.status == 'Approved' %}
+                                                <form action="{{ url_for('admin_toggle_blacklist_staff', user_id=staff.user_id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">Blacklist</button>
+                                                </form>
+                                            {% elif staff.status == 'Blacklisted' %}
+                                                <form action="{{ url_for('admin_toggle_blacklist_staff', user_id=staff.user_id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-success btn-sm">Re-Approve</button>
+                                                </form>
+                                            {% else %}
+                                                <form action="{{ url_for('admin_approve_staff', user_id=staff.user_id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-success btn-sm me-1">Approve</button>
+                                                </form>
+                                            {% endif %}
+                                            <form action="{{ url_for('admin_delete_staff', user_id=staff.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to permanently delete this staff member and profile?');">
+                                                <button type="submit" class="btn btn-outline-dark btn-sm ms-1">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <p class="fs-1 m-0">🧭</p>
+                        <p class="m-0">No staff members found.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
