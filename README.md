@@ -9,10 +9,16 @@ A comprehensive Web Application built with **Flask** and **SQLite** to manage tr
 ### 👤 Role-Based Access Control (RBAC)
 *   **Admin Dashboard**:
     *   Approve or blacklist users and staff members.
+    *   Dedicated **Guide & Staff Verification Dossier** system to review applications.
+    *   Request changes with feedback or reject/approve profiles.
     *   Create, view, update, and delete trek trails.
-    *   Monitor system bookings and manage trek staff assignments.
+    *   Monitor system bookings and manage trek staff/guide assignments.
     *   Visual statistics of bookings, users, and overall metrics.
-*   **Trek Staff Dashboard**:
+*   **Trek Staff & Guides**:
+    *   **Approval & Verification Workflow**: Newly registered Guides/Staff are restricted from accessing dashboard management features until they fill out a 12-section Verification Form and are approved by an Admin.
+    *   **Wizard Verification Profile**: Multi-section wizard form (Personal details, Address, emergency contact, experience, skills checklist, languages, availability, and certificates/resume uploads).
+    *   **Pending Dashboard**: Progress tracker showing review steps, admin changes requested feedback banners, and contact information.
+    *   **Success Landing**: Celebratory congratulations page upon first login post-approval.
     *   View details of assigned treks and check-ins.
     *   Manage and update personal profile, experience, and emergency contact details.
 *   **Trekker (User) Dashboard**:
@@ -25,9 +31,10 @@ A comprehensive Web Application built with **Flask** and **SQLite** to manage tr
 
 ## 🛠️ Technology Stack
 *   **Backend**: Python, Flask
-*   **Database**: SQLite (SQLAlchemy ORM/Direct sqlite3 engine with migrations)
-*   **Frontend**: HTML5, Vanilla CSS, JavaScript
-*   **Security & Auth**: Werkzeug security hashing, Session-based authentication & route security wrappers
+*   **Database**: SQLite (direct sqlite3 connection engine with schemas)
+*   **Frontend**: HTML5, Bootstrap 5, Vanilla CSS, JavaScript
+*   **Security & Auth**: Werkzeug security hashing, Session-based auth, real-time `app.before_request` status interceptor guards.
+*   **File Uploads**: Secure file uploads (PDF, JPG, PNG, DOCX; limit 5MB per file) stored in `static/uploads/`.
 
 ---
 
@@ -35,19 +42,28 @@ A comprehensive Web Application built with **Flask** and **SQLite** to manage tr
 ```text
 Trekking-Management-Application/
 ├── static/
-│   └── css/
-│       └── style.css          # Custom styling sheet
+│   ├── css/
+│   │   └── style.css                 # Custom styling sheet (added wizard, timeline, animations)
+│   └── uploads/                      # Secure directory for document uploads (ignored in git)
 ├── templates/
-│   ├── admin_*.html           # Administrative interface pages
-│   ├── staff_*.html           # Trek staff interface pages
-│   ├── trekker_*.html         # Trekker interface pages
-│   ├── base.html              # Standard structural layout base
-│   ├── home.html              # Landing and portal index page
-│   └── login.html / register  # Authenticating entryways
-├── app.py                     # Main Flask Application & controller logic
-├── database.py                # Database schema definition, migration & seeding
-├── trekking.db                # SQLite database (auto-generated)
-└── README.md                  # Project documentation
+│   ├── admin_dashboard.html          # Administrative stats page
+│   ├── admin_staff.html              # Guide allocation registry
+│   ├── admin_users.html              # User management registry
+│   ├── admin_verifications.html      # NEW: Dedicated guide verifications directory
+│   ├── admin_review.html             # NEW: Verification dossier detailed review panel
+│   ├── pending_dashboard.html        # NEW: Wait screen with progress tracking
+│   ├── verification_form.html        # NEW: 12-section wizard-style profile form
+│   ├── approval_success.html         # NEW: Celebratory redirect layout
+│   ├── staff_dashboard.html          # Trek staff dashboard
+│   ├── staff_profile.html            # Staff profile details
+│   ├── trekker_dashboard.html        # Trekker interface pages
+│   ├── base.html                     # Standard navbar base (updated for Guides)
+│   └── home.html                     # Landing and portal index page
+├── app.py                            # Main Flask application & routes (added workflow handlers)
+├── database.py                       # Database schema definition, migration & seeding
+├── trekking.db                       # SQLite database (auto-generated)
+├── email_logs.txt                    # Local mock email logs (auto-generated)
+└── README.md                         # Project documentation
 ```
 
 ---
@@ -58,10 +74,14 @@ The SQLite database is initialized programmatically with the following structure
 
 ```mermaid
 erDiagram
-    users ||--o| staff_profiles : "extends profile (if Staff)"
+    users ||--o| staff_profiles : "legacy staff profile (backward compatibility)"
+    users ||--o| guide_profiles : "detailed verification profile"
+    users ||--o{ documents : "uploads credential documents"
+    users ||--o{ approval_requests : "logs audit review dossier"
+    users ||--o{ notifications : "receives alerts"
     users ||--o{ bookings : "makes"
     treks ||--o{ bookings : "has"
-    users ||--o{ treks : "assigned staff"
+    users ||--o{ treks : "assigned guide"
     
     users {
         int id PK
@@ -77,6 +97,55 @@ erDiagram
         string gender
         string emergency_contact
         string medical_issues
+        timestamp created_at
+    }
+
+    guide_profiles {
+        int user_id PK
+        string phone
+        string dob
+        string gender
+        string address
+        string city
+        string state
+        string pin_code
+        string country
+        string emergency_contact_name
+        string emergency_contact_relation
+        string emergency_contact_phone
+        string role
+        int experience
+        string organization
+        string specialization
+        string skills
+        string languages
+        string availability
+        string about_me
+        int approved_viewed
+    }
+
+    documents {
+        int id PK
+        int user_id FK
+        string document_type
+        string file_url
+        string verification_status
+    }
+
+    approval_requests {
+        int id PK
+        int user_id FK
+        string status
+        string admin_comment
+        int reviewed_by FK
+        timestamp reviewed_at
+    }
+
+    notifications {
+        int id PK
+        int user_id FK
+        string message
+        int is_read
         timestamp created_at
     }
 
@@ -149,9 +218,9 @@ source venv/bin/activate
 ```
 
 ### 3. Install dependencies
-Ensure Flask is installed:
+Ensure Flask and BeautifulSoup4 (used for testing) are installed:
 ```bash
-pip install flask
+pip install flask beautifulsoup4 requests
 ```
 
 ### 4. Run the Application
@@ -164,6 +233,7 @@ Open `http://127.0.0.1:5000` in your web browser.
 ---
 
 ## 🔑 Seeding / Default Credentials
-The application automatically creates a default administrator account on startup:
-*   **Username**: `admin`
-*   **Password**: `admin123`
+The application automatically creates default administrative and demo details on startup:
+*   **Admin Username**: `admin`
+*   **Admin Password**: `admin123`
+*   **Contact Helpline**: `+91 98765 43210` (Chandigarh Office Desk)
