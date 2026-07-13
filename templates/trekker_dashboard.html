@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Explore Trails - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold" style="color: var(--primary-color);">Discover Your Next Trail</h2>
+        <p class="text-muted">Browse open trekking routes, filter by difficulty or location, and book your slots instantly.</p>
+    </div>
+</div>
+
+
+<div class="card mb-5">
+    <div class="card-body">
+        <form action="{{ url_for('trekker_dashboard') }}" method="GET" class="row g-3">
+            <div class="col-md-5">
+                <label for="search" class="form-label fw-semibold">Search Location / Name</label>
+                <input type="text" class="form-control" id="search" name="search" placeholder="e.g. Himalayas, Uttarakhand" value="{{ search_query or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label for="difficulty" class="form-label fw-semibold">Difficulty Level</label>
+                <select class="form-select" id="difficulty" name="difficulty">
+                    <option value="">-- All Levels --</option>
+                    <option value="Easy" {% if difficulty_filter == 'Easy' %}selected{% endif %}>Easy</option>
+                    <option value="Moderate" {% if difficulty_filter == 'Moderate' %}selected{% endif %}>Moderate</option>
+                    <option value="Hard" {% if difficulty_filter == 'Hard' %}selected{% endif %}>Hard</option>
+                </select>
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100 py-2">Filter Trails</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div class="row">
+    {% if treks %}
+        {% for trek in treks %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 d-flex flex-column">
+                    <div class="card-header pb-0 d-flex justify-content-between align-items-start">
+                        <h5 class="fw-bold m-0" style="color: var(--primary-color);">{{ trek.name }}</h5>
+                        {% if trek.difficulty == 'Easy' %}
+                            <span class="badge badge-easy">Easy</span>
+                        {% elif trek.difficulty == 'Moderate' %}
+                            <span class="badge badge-moderate">Moderate</span>
+                        {% else %}
+                            <span class="badge badge-hard">Hard</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body flex-grow-1">
+                        <p class="text-muted small mb-3">📍 {{ trek.location }}</p>
+
+                        <div class="p-3 bg-light rounded-3 mb-3 small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Duration:</span>
+                                <span class="fw-bold">{{ trek.duration }} days</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Guide:</span>
+                                <span class="fw-semibold">{{ trek.guide_name or 'TBD' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Schedule:</span>
+                                <span class="text-secondary">{{ trek.start_date }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Available Slots:</span>
+                                <span class="fw-bold text-success fs-6">{{ trek.available_slots }} / {{ trek.total_slots }}</span>
+                            </div>
+                        </div>
+
+                        <p class="small text-muted">{{ trek.description }}</p>
+                    </div>
+
+                    <div class="card-footer bg-transparent border-0 p-3 pt-0 mt-auto">
+                        {% if trek.user_has_booked %}
+                            <button class="btn btn-secondary w-100 py-2" disabled>Already Booked</button>
+                        {% elif trek.available_slots <= 0 or trek.status == 'Closed' %}
+                            <button class="btn btn-outline-danger w-100 py-2" disabled>Booking Closed</button>
+                        {% else %}
+                            <form action="{{ url_for('trekker_book', trek_id=trek.id) }}" method="POST" onsubmit="return confirm('Do you want to book a slot for this trek?');">
+                                <button type="submit" class="btn btn-primary w-100 py-2">Book Slot Now</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="card text-center py-5 text-muted">
+                <span class="fs-1 d-block mb-2">🏔️</span>
+                <p class="m-0">No active/open trails found matching your filters.</p>
+                <p class="small">Check back later or adjust search parameters.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

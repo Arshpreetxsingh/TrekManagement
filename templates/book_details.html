@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Participant Details - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-lg-8 col-md-10">
+        <div class="card p-4">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <span style="font-size: 3rem;">📝</span>
+                    <h2 class="fw-bold mt-2">Participant Information</h2>
+                    <p class="text-muted">Enter details for the <strong>{{ slots }}</strong> spot(s) you are booking for <strong>{{ trek.name }}</strong>.</p>
+                </div>
+
+                <form action="{{ url_for('trekker_book_details', trek_id=trek.id, slots=slots) }}" method="POST">
+                    {% for i in range(slots) %}
+                        {% set is_self = (i == 0 and booking_type == 'self' and user_profile) %}
+                        <div class="p-3 mb-4 rounded-3 border bg-light shadow-sm">
+                            <h5 class="fw-bold mb-3 text-success">👤 Participant #{{ i + 1 }} {% if is_self %}(Myself){% endif %}</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="name_{{ i }}" class="form-label fw-semibold">Full Name</label>
+                                    <input type="text" class="form-control" id="name_{{ i }}" name="name_{{ i }}" value="{% if is_self %}{{ user_profile.name or '' }}{% endif %}" placeholder="e.g., Rahul Sharma" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="phone_{{ i }}" class="form-label fw-semibold">Phone Number</label>
+                                    <input type="tel" class="form-control" id="phone_{{ i }}" name="phone_{{ i }}" value="{% if is_self %}{{ user_profile.phone or '' }}{% endif %}" placeholder="e.g., +91 98765 43210" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="age_{{ i }}" class="form-label fw-semibold">Age</label>
+                                    <input type="number" class="form-control" id="age_{{ i }}" name="age_{{ i }}" value="{% if is_self %}{{ user_profile.age or '' }}{% endif %}" min="1" max="120" placeholder="e.g., 28" required>
+                                </div>
+                                <div class="col-md-8">
+                                    <label for="country_{{ i }}" class="form-label fw-semibold">Country</label>
+                                    <input type="text" class="form-control" id="country_{{ i }}" name="country_{{ i }}" value="{% if is_self %}India{% endif %}" placeholder="e.g., India" required>
+                                </div>
+                                <div class="col-12">
+                                    <label for="address_{{ i }}" class="form-label fw-semibold">Residential Address</label>
+                                    <input type="text" class="form-control" id="address_{{ i }}" name="address_{{ i }}" value="{% if is_self %}{{ user_profile.location or '' }}{% endif %}" placeholder="e.g., Flat 402, Green Glen Layout, Bangalore, Karnataka" required>
+                                </div>
+                                <div class="col-12">
+                                    <label for="details_{{ i }}" class="form-label fw-semibold">Details / Medical Notes / Dietary Requirements (Optional)</label>
+                                    <textarea class="form-control" id="details_{{ i }}" name="details_{{ i }}" rows="2" placeholder="e.g., Mild asthma, Vegetarian diet">{% if is_self %}{{ user_profile.medical_issues or '' }}{% endif %}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 py-3 mb-3 fw-bold">Confirm Booking & Book Now</button>
+                    <a href="{{ url_for('trekker_dashboard') }}" class="btn btn-outline-secondary w-100 py-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Book Trek Slots - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center my-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card p-4">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <span style="font-size: 3rem;">🏔️</span>
+                    <h2 class="fw-bold mt-2">Book Your Spot</h2>
+                    <p class="text-muted small">Trek: <strong>{{ trek.name }}</strong></p>
+                </div>
+
+                <div class="p-3 bg-light rounded-3 mb-4 small">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Location:</span>
+                        <strong class="text-dark">{{ trek.location }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Start Date:</span>
+                        <strong class="text-dark">{{ trek.start_date }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Difficulty:</span>
+                        <span class="badge {% if trek.difficulty == 'Easy' %}badge-easy{% elif trek.difficulty == 'Moderate' %}badge-moderate{% else %}badge-hard{% endif %}">{{ trek.difficulty }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Available Slots:</span>
+                        <strong class="text-success">{{ trek.available_slots }} slots</strong>
+                    </div>
+                </div>
+
+                <form action="{{ url_for('trekker_book', trek_id=trek.id) }}" method="POST">
+                    <div class="mb-4">
+                        <label for="slots_count" class="form-label fw-semibold">Select number of slots to book:</label>
+                        <select class="form-select form-select-lg" id="slots_count" name="slots_count" required>
+                            {% for i in range(1, trek.available_slots + 1) %}
+                                <option value="{{ i }}">{{ i }} {% if i == 1 %}Person{% else %}People{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted mt-2 d-block">You can book slots for yourself and/or other people.</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold d-block">Traveler Information Options</label>
+                        
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="booking_type" id="booking_type_self" value="self" checked>
+                            <label class="form-check-label fw-medium" for="booking_type_self">
+                                I am traveling (Auto-fill my details for Participant #1)
+                            </label>
+                            <small class="text-muted d-block ps-4">Your profile details (Name, Phone, Age, Address) will be filled in automatically for the first slot.</small>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="booking_type" id="booking_type_others" value="others">
+                            <label class="form-check-label fw-medium" for="booking_type_others">
+                                I am booking only for others (All manual entry)
+                            </label>
+                            <small class="text-muted d-block ps-4">All participants' details will need to be entered manually.</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 mb-3">Continue to Details &rarr;</button>
+                    <a href="{{ url_for('trekker_dashboard') }}" class="btn btn-outline-secondary w-100 py-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
