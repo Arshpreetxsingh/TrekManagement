@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Register Staff - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card p-4">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <span style="font-size: 3rem;">🧭</span>
+                    <h2 class="fw-bold mt-2">Guide Sign Up</h2>
+                    <p class="text-muted small">Register as a trek staff guide</p>
+                </div>
+
+                <div class="alert alert-warning mb-4 small" role="alert">
+                    <strong>Note:</strong> Registration requests must be manually reviewed and approved by the system administrator before dashboard access is permitted.
+                </div>
+
+                <form action="{{ url_for('register_staff') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label fw-semibold">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="e.g., rahul_guide" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label fw-semibold">Full Name</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="e.g., Rahul Sharma" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold">Email Address (Gmail)</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="e.g., rahul.sharma@gmail.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label fw-semibold">Phone Number</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="e.g., +91 98765 43210" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label fw-semibold">Location / Base Camp</label>
+                        <input type="text" class="form-control" id="location" name="location" placeholder="e.g., Manali, Himachal Pradesh" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label fw-semibold">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Create password" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="confirm_password" class="form-label fw-semibold">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Repeat password" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 mb-3">Submit Request</button>
+                </form>
+
+                <div class="text-center small mt-3">
+                    <span class="text-muted">Already have an account?</span>
+                    <a href="{{ url_for('login') }}" class="text-success fw-semibold ms-1">Log in here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

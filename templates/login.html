@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Log In - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center my-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card p-4">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <span style="font-size: 3rem;">🥾</span>
+                    <h2 class="fw-bold mt-2">Welcome Back</h2>
+                    <p class="text-muted small">Log in to coordinate or book treks</p>
+                </div>
+
+                <form action="{{ url_for('login') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label fw-semibold">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required autocomplete="username">
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label fw-semibold">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Enter password" required autocomplete="current-password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 mb-3">Sign In</button>
+                </form>
+
+                <hr class="text-muted">
+
+                <div class="text-center small mt-3">
+                    <span class="text-muted">New to the platform?</span>
+                    <div class="mt-1">
+                        <a href="{{ url_for('register_trekker') }}" class="text-success fw-semibold me-2">Register as Trekker</a>
+                        |
+                        <a href="{{ url_for('register_staff') }}" class="text-success fw-semibold ms-2">Register as Staff</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
