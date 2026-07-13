@@ -65,7 +65,7 @@ erDiagram
     
     users {
         int id PK
-        string username UNIQUE
+        string username
         string password_hash
         string role
         string status
