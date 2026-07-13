@@ -1,0 +1,201 @@
+
+
+:root {
+    --primary-color: #1b4332;
+    --primary-hover: #081c15;
+    --secondary-color: #40916c;
+    --accent-color: #d8f3dc;
+    --accent-warning: #ffb703;
+    --accent-danger: #d90429;
+    --background-gray: #f8f9fa;
+    --text-dark: #212529;
+    --border-radius-sm: 8px;
+    --border-radius-lg: 16px;
+    --box-shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --box-shadow-md: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    background-color: var(--background-gray);
+    color: var(--text-dark);
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+nav.navbar, .navbar-custom {
+    background-color: var(--primary-color) !important;
+    box-shadow: var(--box-shadow-sm);
+}
+
+nav.navbar .navbar-brand, .navbar-custom .navbar-brand {
+    color: #ffffff !important;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+nav.navbar .nav-link, .navbar-custom .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 500;
+    transition: color 0.2s ease-in-out;
+}
+
+nav.navbar .nav-link:hover,
+nav.navbar .nav-link.active,
+.navbar-custom .nav-link:hover,
+.navbar-custom .nav-link.active {
+    color: #ffffff !important;
+}
+
+
+main {
+    flex: 1 0 auto;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
+
+.card, .card-custom {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--box-shadow-sm);
+    background-color: #ffffff;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover, .card-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow-md);
+}
+
+.card-header, .card-header-custom {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    font-weight: 700;
+}
+
+
+.btn-primary, .btn-primary-custom {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: var(--border-radius-sm);
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover, .btn-primary-custom:hover {
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+    color: #ffffff !important;
+}
+
+.btn-secondary, .btn-secondary-custom {
+    background-color: var(--secondary-color) !important;
+    border-color: var(--secondary-color) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: var(--border-radius-sm);
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover, .btn-secondary-custom:hover {
+    background-color: #2d6a4f !important;
+    border-color: #2d6a4f !important;
+    color: #ffffff !important;
+}
+
+
+.badge-easy {
+    background-color: #d8f3dc;
+    color: #1b4332;
+    font-weight: 600;
+}
+
+.badge-moderate {
+    background-color: #ffe5ec;
+    color: #d90429;
+    font-weight: 600;
+}
+
+.badge-hard {
+    background-color: #343a40;
+    color: #f8f9fa;
+    font-weight: 600;
+}
+
+
+.stat-card {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #ffffff;
+    border-radius: var(--border-radius-lg);
+    border: none;
+    box-shadow: var(--box-shadow-sm);
+}
+
+.stat-card-title {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.85;
+}
+
+.stat-card-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+
+.table-custom {
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
+.table-custom tr {
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    border-radius: var(--border-radius-sm);
+}
+
+.table-custom th {
+    border-top: none;
+    border-bottom: 2px solid rgba(0,0,0,0.05);
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.table-custom td {
+    padding: 1rem;
+    vertical-align: middle;
+    border: none;
+}
+
+
+footer {
+    background-color: var(--primary-color);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 1.5rem 0;
+    font-size: 0.85rem;
+    margin-top: auto;
+}
+
+footer a {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+
+.fade-in {
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

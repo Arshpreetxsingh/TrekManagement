@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - TrekManagement Platform{% endblock %}
+
+{% block content %}
+<div class="row align-items-center my-5">
+    <div class="col-lg-6">
+        <h1 class="display-4 fw-bold mb-3" style="color: var(--primary-color);">
+            Discover Your Next Adventure
+        </h1>
+        <p class="lead text-muted mb-4">
+            Connect with seasoned guides, view breath-taking routes, and manage all your trekking bookings in one central hub. Streamlined slot management, real-time guides scheduling, and hassle-free confirmations.
+        </p>
+
+        <div class="d-flex gap-3 mb-4">
+            {% if not session.get('username') %}
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-4">Start Trekking</a>
+                <a href="{{ url_for('register_trekker') }}" class="btn btn-outline-secondary btn-lg px-4">Create Account</a>
+            {% else %}
+                {% if session.get('role') == 'Admin' %}
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary btn-lg px-4">Go to Admin Dashboard</a>
+                {% elif session.get('role') == 'Staff' %}
+                    <a href="{{ url_for('staff_dashboard') }}" class="btn btn-primary btn-lg px-4">Go to Staff Dashboard</a>
+                {% else %}
+                    <a href="{{ url_for('trekker_dashboard') }}" class="btn btn-primary btn-lg px-4">View Available Treks</a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-6 text-center">
+        <div class="p-5 rounded-4 shadow-sm" style="background-color: var(--accent-color); border: 2px dashed var(--secondary-color);">
+            <div class="mb-4">
+                <span style="font-size: 5rem;">🏔️</span>
+            </div>
+            <h3 class="fw-bold mb-2">Trek With Confidence</h3>
+            <p class="text-muted">
+                Our guides are vetted and approved by administrative coordinators. With live seat inventory tracking, overbookings are a thing of the past.
+            </p>
+            <div class="row text-center mt-4">
+                <div class="col-4">
+                    <h4 class="fw-bold text-success">{{ num_staff }}</h4>
+                    <small class="text-muted">Approved Guides</small>
+                </div>
+                <div class="col-4">
+                    <h4 class="fw-bold text-success">{{ num_treks }}</h4>
+                    <small class="text-muted">Active Trails</small>
+                </div>
+                <div class="col-4">
+                    <h4 class="fw-bold text-success">{{ num_trekkers }}</h4>
+                    <small class="text-muted">Registered Trekkers</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5 pt-4 border-top">
+    <div class="col-md-4 text-center mb-4">
+        <div class="p-3">
+            <h3 class="h5 fw-bold">1. Find a Trail</h3>
+            <p class="text-muted">Browse vetted treks filterable by location and difficulty level (Easy, Moderate, or Hard).</p>
+        </div>
+    </div>
+    <div class="col-md-4 text-center mb-4">
+        <div class="p-3">
+            <h3 class="h5 fw-bold">2. Book in Seconds</h3>
+            <p class="text-muted">Instant slot reservations. Keep track of all your upcoming tours and complete booking history.</p>
+        </div>
+    </div>
+    <div class="col-md-4 text-center mb-4">
+        <div class="p-3">
+            <h3 class="h5 fw-bold">3. Summit Safely</h3>
+            <p class="text-muted">Our approved, assigned guides update trail schedules and ensure seamless coordination on the ground.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
