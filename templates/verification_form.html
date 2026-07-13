@@ -1,0 +1,509 @@
+{% extends "base.html" %}
+
+{% block title %}Complete Profile Verification - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-lg-9 col-md-11">
+        
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-primary text-white p-4 rounded-top-lg">
+                <h3 class="m-0 fw-bold">🧭 Guide & Staff Profile Verification</h3>
+                <p class="m-0 text-white-50 small">Provide your professional credentials and documents to unlock dashboard access.</p>
+            </div>
+            
+            <div class="card-body p-4">
+                
+                <!-- Wizard Navigation Tabs (Vertical/Horizontal list of sections) -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="d-flex overflow-auto pb-2 text-nowrap gap-2" id="step-indicators" style="scrollbar-width: thin;">
+                            <span class="badge bg-primary p-2 step-indicator" data-step="1">1. Personal Info</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="2">2. ID Verify</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="3">3. Address</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="4">4. Emergency</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="5">5. Professional</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="6">6. Skills</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="7">7. Certs</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="8">8. Languages</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="9">9. Availability</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="10">10. Bio</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="11">11. Documents</span>
+                            <span class="badge bg-light text-dark p-2 step-indicator" data-step="12">12. Declaration</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Start -->
+                <form action="{{ url_for('verification_form') }}" method="POST" enctype="multipart/form-data" id="verification-wizard">
+                    
+                    <!-- SECTION 1: Personal Info -->
+                    <div class="wizard-step" data-step="1">
+                        <h4 class="fw-bold mb-3 text-primary">Section 1: Personal Information</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label fw-semibold">Full Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label fw-semibold">Email Address *</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label fw-semibold">Phone Number *</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" value="{{ profile.phone or '' }}" placeholder="e.g. +91 98765 43210" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="dob" class="form-label fw-semibold">Date of Birth *</label>
+                                <input type="date" class="form-control" id="dob" name="dob" value="{{ profile.dob or '' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="gender" class="form-label fw-semibold">Gender *</label>
+                                <select class="form-select" id="gender" name="gender" required>
+                                    <option value="">-- Choose Gender --</option>
+                                    <option value="Male" {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
+                                    <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
+                                    <option value="Non-Binary" {% if profile.gender == 'Non-Binary' %}selected{% endif %}>Non-Binary</option>
+                                    <option value="Prefer Not to Say" {% if profile.gender == 'Prefer Not to Say' %}selected{% endif %}>Prefer Not to Say</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="profile_photo" class="form-label fw-semibold">Profile Photo Upload * (Max 5MB)</label>
+                                {% if existing_docs.get('profile_photo') %}
+                                    <div class="text-success small mb-2">✔ Profile photo already uploaded: {{ existing_docs.get('profile_photo').file_url }}</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="profile_photo" name="profile_photo" accept=".jpg,.jpeg,.png">
+                                <div class="form-text">Supported formats: JPG, PNG.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: Government Verification -->
+                    <div class="wizard-step d-none" data-step="2">
+                        <h4 class="fw-bold mb-3 text-primary">Section 2: Government Verification</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_type" class="form-label fw-semibold">Government ID Type *</label>
+                                <select class="form-select" id="id_type" name="id_type" required>
+                                    <option value="Aadhaar">Aadhaar Card</option>
+                                    <option value="Passport">Passport</option>
+                                    <option value="Driving Licence">Driving Licence</option>
+                                    <option value="Voter ID">Voter ID</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="id_number" class="form-label fw-semibold">Government ID Number *</label>
+                                <input type="text" class="form-control" id="id_number" name="id_number" placeholder="Enter ID Proof Number" required>
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label for="id_proof" class="form-label fw-semibold">Upload ID Proof * (Max 5MB)</label>
+                                {% if existing_docs.get('id_proof') %}
+                                    <div class="text-success small mb-2">✔ Document already uploaded: {{ existing_docs.get('id_proof').file_url }}</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="id_proof" name="id_proof" accept=".jpg,.jpeg,.png,.pdf">
+                                <div class="form-text">Supported formats: PDF, JPG, PNG. Clear readable scan required.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: Address -->
+                    <div class="wizard-step d-none" data-step="3">
+                        <h4 class="fw-bold mb-3 text-primary">Section 3: Contact Address</h4>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="address" class="form-label fw-semibold">Address *</label>
+                                <input type="text" class="form-control" id="address" name="address" value="{{ profile.address or '' }}" placeholder="Street details, house no." required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="city" class="form-label fw-semibold">City *</label>
+                                <input type="text" class="form-control" id="city" name="city" value="{{ profile.city or '' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="state" class="form-label fw-semibold">State *</label>
+                                <input type="text" class="form-control" id="state" name="state" value="{{ profile.state or '' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="pin_code" class="form-label fw-semibold">PIN Code *</label>
+                                <input type="text" class="form-control" id="pin_code" name="pin_code" value="{{ profile.pin_code or '' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="country" class="form-label fw-semibold">Country *</label>
+                                <input type="text" class="form-control" id="country" name="country" value="{{ profile.country or 'India' }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 4: Emergency Contact -->
+                    <div class="wizard-step d-none" data-step="4">
+                        <h4 class="fw-bold mb-3 text-primary">Section 4: Emergency Contact</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="emergency_contact_name" class="form-label fw-semibold">Emergency Contact Name *</label>
+                                <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" value="{{ profile.emergency_contact_name or '' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="emergency_contact_relation" class="form-label fw-semibold">Relationship *</label>
+                                <input type="text" class="form-control" id="emergency_contact_relation" name="emergency_contact_relation" value="{{ profile.emergency_contact_relation or '' }}" placeholder="e.g. Spouse, Parent, Sibling" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="emergency_contact_phone" class="form-label fw-semibold">Emergency Phone Number *</label>
+                                <input type="tel" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone" value="{{ profile.emergency_contact_phone or '' }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 5: Professional Info -->
+                    <div class="wizard-step d-none" data-step="5">
+                        <h4 class="fw-bold mb-3 text-primary">Section 5: Professional Information</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="role" class="form-label fw-semibold">Your Role *</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="Guide" {% if user.role == 'Guide' %}selected{% endif %}>Trek Guide</option>
+                                    <option value="Staff" {% if user.role == 'Staff' %}selected{% endif %}>Operations Staff</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="experience" class="form-label fw-semibold">Years of Experience *</label>
+                                <input type="number" class="form-control" id="experience" name="experience" min="0" value="{{ profile.experience or 0 }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="organization" class="form-label fw-semibold">Current Organization / Affiliation</label>
+                                <input type="text" class="form-control" id="organization" name="organization" value="{{ profile.organization or '' }}" placeholder="e.g. Independent or Club name">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="specialization" class="form-label fw-semibold">Specialization</label>
+                                <input type="text" class="form-control" id="specialization" name="specialization" value="{{ profile.specialization or '' }}" placeholder="e.g. High altitude climbs, Flora/Fauna expert">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 6: Skills -->
+                    <div class="wizard-step d-none" data-step="6">
+                        <h4 class="fw-bold mb-3 text-primary">Section 6: Trekking & Rescue Skills</h4>
+                        <p class="text-muted small">Check all wilderness skills in which you hold competent practice:</p>
+                        <div class="row">
+                            {% set skills = ['Camping', 'Trekking', 'Rock Climbing', 'First Aid', 'Mountain Rescue', 'Navigation', 'Wildlife Knowledge', 'Adventure Activities'] %}
+                            {% for skill in skills %}
+                            <div class="col-md-4 col-sm-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="skills" value="{{ skill }}" id="skill_{{ loop.index }}"
+                                           {% if profile.skills and skill in profile.skills.split(',') %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="skill_{{ loop.index }}">
+                                        {{ skill }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- SECTION 7: Certifications -->
+                    <div class="wizard-step d-none" data-step="7">
+                        <h4 class="fw-bold mb-3 text-primary">Section 7: Certifications & Training Proofs</h4>
+                        <p class="text-muted small">Upload readable certification proofs (Max 5MB each):</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="cert_first_aid" class="form-label fw-semibold">First Aid Certificate</label>
+                                {% if existing_docs.get('cert_first_aid') %}
+                                    <div class="text-success small mb-1">✔ Already uploaded</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="cert_first_aid" name="cert_first_aid" accept=".pdf,.jpg,.png">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="cert_mountaineering" class="form-label fw-semibold">Mountaineering Certification</label>
+                                {% if existing_docs.get('cert_mountaineering') %}
+                                    <div class="text-success small mb-1">✔ Already uploaded</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="cert_mountaineering" name="cert_mountaineering" accept=".pdf,.jpg,.png">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="cert_adventure" class="form-label fw-semibold">Adventure Training Certificate</label>
+                                {% if existing_docs.get('cert_adventure') %}
+                                    <div class="text-success small mb-1">✔ Already uploaded</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="cert_adventure" name="cert_adventure" accept=".pdf,.jpg,.png">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="cert_rescue" class="form-label fw-semibold">Rescue Training Certificate</label>
+                                {% if existing_docs.get('cert_rescue') %}
+                                    <div class="text-success small mb-1">✔ Already uploaded</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="cert_rescue" name="cert_rescue" accept=".pdf,.jpg,.png">
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label for="cert_other" class="form-label fw-semibold">Other Relevant Certificates (e.g. Navigation, Wilderness Medicine)</label>
+                                {% if existing_docs.get('cert_other') %}
+                                    <div class="text-success small mb-1">✔ Already uploaded</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="cert_other" name="cert_other" accept=".pdf,.jpg,.png">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 8: Languages -->
+                    <div class="wizard-step d-none" data-step="8">
+                        <h4 class="fw-bold mb-3 text-primary">Section 8: Language Proficiency</h4>
+                        <p class="text-muted small">Select the languages you can speak/communicate in fluently:</p>
+                        <div class="row">
+                            {% set languages = ['English', 'Hindi', 'Punjabi', 'Bengali', 'Tamil', 'Other'] %}
+                            {% for lang in languages %}
+                            <div class="col-md-4 col-sm-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="languages" value="{{ lang }}" id="lang_{{ loop.index }}"
+                                           {% if profile.languages and lang in profile.languages.split(',') %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="lang_{{ loop.index }}">
+                                        {{ lang }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- SECTION 9: Availability -->
+                    <div class="wizard-step d-none" data-step="9">
+                        <h4 class="fw-bold mb-3 text-primary">Section 9: Availability Options</h4>
+                        <p class="text-muted small">Select availability schedules matching your trekking availability:</p>
+                        <div class="row">
+                            {% set availability = ['Weekdays', 'Weekends', 'Part Time', 'Full Time'] %}
+                            {% for avail in availability %}
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="availability" value="{{ avail }}" id="avail_{{ loop.index }}"
+                                           {% if profile.availability and avail in profile.availability.split(',') %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="avail_{{ loop.index }}">
+                                        {{ avail }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- SECTION 10: About Yourself -->
+                    <div class="wizard-step d-none" data-step="10">
+                        <h4 class="fw-bold mb-3 text-primary">Section 10: About Yourself / Trek Bio</h4>
+                        <div class="mb-3">
+                            <label for="about_me" class="form-label fw-semibold">Tell us about your trekking and outdoors experience *</label>
+                            <textarea class="form-control" id="about_me" name="about_me" rows="6" maxlength="2500" placeholder="Please write a summary description of your trekking paths, safety leadership, and rescue records. Max 500 words." required>{{ profile.about_me or '' }}</textarea>
+                            <div class="form-text text-end" id="bio-char-count">0 / 500 words</div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 11: Additional Documents -->
+                    <div class="wizard-step d-none" data-step="11">
+                        <h4 class="fw-bold mb-3 text-primary">Section 11: Additional Verification Documents</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="resume" class="form-label fw-semibold">Professional Resume *</label>
+                                {% if existing_docs.get('resume') %}
+                                    <div class="text-success small mb-1">✔ Resume already uploaded</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="resume" name="resume" accept=".pdf,.doc,.docx">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="medical_fitness" class="form-label fw-semibold">Medical Fitness Certificate *</label>
+                                {% if existing_docs.get('medical_fitness') %}
+                                    <div class="text-success small mb-1">✔ Certificate already uploaded</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="medical_fitness" name="medical_fitness" accept=".pdf,.jpg,.png">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="experience_cert" class="form-label fw-semibold">Experience Certificate (If any)</label>
+                                {% if existing_docs.get('experience_cert') %}
+                                    <div class="text-success small mb-1">✔ Certificate already uploaded</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="experience_cert" name="experience_cert" accept=".pdf,.jpg,.png">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="police_verification" class="form-label fw-semibold">Police Verification Certificate (Optional)</label>
+                                {% if existing_docs.get('police_verification') %}
+                                    <div class="text-success small mb-1">✔ Document already uploaded</div>
+                                {% endif %}
+                                <input type="file" class="form-control file-input-check" id="police_verification" name="police_verification" accept=".pdf,.jpg,.png">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 12: Declaration -->
+                    <div class="wizard-step d-none" data-step="12">
+                        <h4 class="fw-bold mb-3 text-primary">Section 12: Applicant Declaration</h4>
+                        <div class="card border border-primary-subtle bg-light-subtle p-3 mb-4 rounded-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="declaration" name="declaration" required>
+                                <label class="form-check-label fw-semibold text-dark" for="declaration" style="font-size: 0.95rem;">
+                                    I certify that all the information provided in this profile verification request is true, complete, and correct to the best of my knowledge. I understand that falsifying details will result in instant deactivation. *
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Action Buttons -->
+                    <div class="d-flex justify-content-between border-top pt-4 mt-4">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2" id="prev-btn" disabled>Back</button>
+                        <button type="button" class="btn btn-primary px-4 py-2" id="next-btn">Next Step &rarr;</button>
+                        <button type="submit" class="btn btn-success px-4 py-2 d-none" id="submit-btn">Submit Verification</button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let currentStep = 1;
+    const totalSteps = 12;
+    
+    const form = document.getElementById("verification-wizard");
+    const prevBtn = document.getElementById("prev-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const submitBtn = document.getElementById("submit-btn");
+    const bioTextarea = document.getElementById("about_me");
+    const bioCharCount = document.getElementById("bio-char-count");
+    
+    // File size validation checks
+    const fileInputs = document.querySelectorAll(".file-input-check");
+    fileInputs.forEach(input => {
+        input.addEventListener("change", function() {
+            if (this.files && this.files[0]) {
+                const size = this.files[0].size;
+                const max_size = 5 * 1024 * 1024; // 5MB
+                if (size > max_size) {
+                    alert("File is too large! Maximum permitted size is 5MB.");
+                    this.value = ""; // Clear
+                }
+            }
+        });
+    });
+
+    // Bio Word counter
+    bioTextarea.addEventListener("input", function() {
+        const text = this.value.trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        bioCharCount.textContent = `${words} / 500 words`;
+        if (words > 500) {
+            bioCharCount.classList.add("text-danger");
+        } else {
+            bioCharCount.classList.remove("text-danger");
+        }
+    });
+
+    // Initial word count load
+    if(bioTextarea.value.trim()) {
+        const words = bioTextarea.value.trim().split(/\s+/).length;
+        bioCharCount.textContent = `${words} / 500 words`;
+    }
+
+    function updateWizardUI() {
+        // Toggle steps
+        document.querySelectorAll(".wizard-step").forEach(step => {
+            step.classList.add("d-none");
+        });
+        document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove("d-none");
+
+        // Update step badges
+        document.querySelectorAll(".step-indicator").forEach(badge => {
+            const stepVal = parseInt(badge.getAttribute("data-step"));
+            if (stepVal === currentStep) {
+                badge.classList.remove("bg-light", "text-dark", "bg-success");
+                badge.classList.add("bg-primary", "text-white");
+            } else if (stepVal < currentStep) {
+                badge.classList.remove("bg-light", "text-dark", "bg-primary");
+                badge.classList.add("bg-success", "text-white");
+            } else {
+                badge.classList.remove("bg-primary", "bg-success", "text-white");
+                badge.classList.add("bg-light", "text-dark");
+            }
+        });
+
+        // Toggle back/next/submit buttons
+        prevBtn.disabled = (currentStep === 1);
+        
+        if (currentStep === totalSteps) {
+            nextBtn.classList.add("d-none");
+            submitBtn.classList.remove("d-none");
+        } else {
+            nextBtn.classList.remove("d-none");
+            submitBtn.classList.add("d-none");
+        }
+
+        // Scroll step indicators to keep active step visible
+        const indicatorsContainer = document.getElementById("step-indicators");
+        const activeIndicator = document.querySelector(`.step-indicator[data-step="${currentStep}"]`);
+        if (activeIndicator) {
+            indicatorsContainer.scrollTo({
+                left: activeIndicator.offsetLeft - indicatorsContainer.clientWidth/2 + activeIndicator.clientWidth/2,
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    function isStepValid() {
+        const activeStepEl = document.querySelector(`.wizard-step[data-step="${currentStep}"]`);
+        const inputs = activeStepEl.querySelectorAll("input[required], select[required], textarea[required]");
+        
+        for (let input of inputs) {
+            if (!input.value.trim()) {
+                input.reportValidity();
+                return false;
+            }
+            if (input.type === "checkbox" && !input.checked) {
+                input.reportValidity();
+                return false;
+            }
+        }
+
+        // Check word limit on bio step
+        if (currentStep === 10) {
+            const words = bioTextarea.value.trim().split(/\s+/).length;
+            if (words > 500) {
+                alert("Please shorten your biography to less than 500 words.");
+                bioTextarea.focus();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    nextBtn.addEventListener("click", function() {
+        if (isStepValid()) {
+            currentStep++;
+            updateWizardUI();
+        }
+    });
+
+    prevBtn.addEventListener("click", function() {
+        currentStep--;
+        updateWizardUI();
+    });
+
+    // Allow clicking past step indicators directly IF they are valid
+    document.querySelectorAll(".step-indicator").forEach(badge => {
+        badge.addEventListener("click", function() {
+            const targetStep = parseInt(this.getAttribute("data-step"));
+            if (targetStep < currentStep) {
+                currentStep = targetStep;
+                updateWizardUI();
+            } else if (targetStep > currentStep) {
+                // Validate intermediate steps before jumping forward
+                while (currentStep < targetStep) {
+                    if (!isStepValid()) break;
+                    currentStep++;
+                }
+                updateWizardUI();
+            }
+        });
+    });
+
+    updateWizardUI();
+});
+</script>
+{% endblock %}

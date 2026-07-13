@@ -18,3 +18,7 @@ env/
 .idea/
 *.swp
 *.swo
+
+# Runtime uploads & logs
+email_logs.txt
+static/uploads/

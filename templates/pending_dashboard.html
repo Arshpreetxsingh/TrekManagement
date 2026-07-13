@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Account Status - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-5">
+    <div class="col-lg-8 col-md-10">
+        
+        <!-- Changes Requested Alert Banner -->
+        {% if user.status == 'Changes Requested' %}
+        <div class="alert alert-warning border-warning border-2 shadow-sm mb-4 p-4 rounded-3 fade-in">
+            <div class="d-flex align-items-start">
+                <span class="fs-2 me-3">⚠️</span>
+                <div>
+                    <h4 class="alert-heading fw-bold">Changes Requested by Administrator</h4>
+                    <p class="mb-2">The system administrator has reviewed your application and requested the following updates:</p>
+                    <div class="bg-white p-3 rounded-2 text-dark font-monospace border small mb-3">
+                        {{ admin_comment or "Please review and resubmit your details." }}
+                    </div>
+                    <p class="m-0 small">Please click <strong>Complete Verification Form</strong> below to edit and resubmit your details.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Rejection Banner -->
+        {% if user.status == 'Rejected' %}
+        <div class="alert alert-danger border-danger border-2 shadow-sm mb-4 p-4 rounded-3 fade-in">
+            <div class="d-flex align-items-start">
+                <span class="fs-2 me-3">❌</span>
+                <div>
+                    <h4 class="alert-heading fw-bold">Application Declined</h4>
+                    <p class="mb-2">We regret to inform you that your guide/staff registration request has been rejected.</p>
+                    <div class="bg-white p-3 rounded-2 text-dark border small mb-3">
+                        <strong>Reason/Notes:</strong> {{ admin_comment or "Your credentials did not meet platform guidelines." }}
+                    </div>
+                    <p class="m-0 small">If you believe this is an error, please contact the administrator using the button below.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Main Waiting Dashboard Card -->
+        <div class="card shadow border-0 p-4 mb-4">
+            <div class="card-body text-center">
+                
+                <!-- Large Animated Icon / Icon Indicator -->
+                <div class="mb-4">
+                    {% if user.status == 'Pending' %}
+                        <span class="display-1 text-primary d-inline-block animate-pulse">📋</span>
+                    {% elif user.status == 'Under Review' %}
+                        <span class="display-1 text-warning d-inline-block animate-pulse">⏳</span>
+                    {% elif user.status == 'Changes Requested' %}
+                        <span class="display-1 text-warning d-inline-block">📝</span>
+                    {% elif user.status == 'Rejected' %}
+                        <span class="display-1 text-danger d-inline-block">🚫</span>
+                    {% endif %}
+                </div>
+
+                <h2 class="fw-bold mt-2">Welcome, {{ user.name }}!</h2>
+                <p class="text-muted col-md-10 mx-auto">
+                    Thank you for applying to be a <strong>{{ user.role }}</strong> on TrekManagement. Before you can access our staff controls, trails, equipment registries, and bookings, you must undergo administrator verification.
+                </p>
+
+                <!-- Status Badge -->
+                <div class="my-4">
+                    <span class="small text-uppercase tracking-wider fw-bold text-muted d-block mb-1">Current Account Status</span>
+                    {% if user.status == 'Pending' %}
+                        <span class="badge bg-secondary px-4 py-2 fs-6">Pending Verification Form</span>
+                    {% elif user.status == 'Under Review' %}
+                        <span class="badge bg-warning text-dark px-4 py-2 fs-6">Under Review</span>
+                    {% elif user.status == 'Changes Requested' %}
+                        <span class="badge bg-warning text-dark px-4 py-2 fs-6">Changes Requested</span>
+                    {% elif user.status == 'Rejected' %}
+                        <span class="badge bg-danger px-4 py-2 fs-6">Rejected / Declined</span>
+                    {% endif %}
+                </div>
+
+                <hr class="my-4 opacity-50">
+
+                <!-- Timeline / Progress Tracker -->
+                <h4 class="fw-bold text-start mb-4">Verification Progress Tracker</h4>
+                <div class="timeline-container mb-5 text-start">
+                    
+                    <!-- Step 1: Registration -->
+                    <div class="timeline-step d-flex align-items-center mb-3">
+                        <div class="step-icon me-3 d-flex align-items-center justify-content-center bg-success text-white rounded-circle" style="width: 36px; height: 36px;">
+                            ✔
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0">Registration Completed</h6>
+                            <small class="text-muted">Your account was successfully registered.</small>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Verification Submit -->
+                    <div class="timeline-step d-flex align-items-center mb-3">
+                        {% if user.status in ['Under Review', 'Approved'] %}
+                            <div class="step-icon me-3 d-flex align-items-center justify-content-center bg-success text-white rounded-circle" style="width: 36px; height: 36px;">
+                                ✔
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-0">Verification Submitted</h6>
+                                <small class="text-muted">Your detailed credentials and documents were successfully received.</small>
+                            </div>
+                        {% elif user.status == 'Changes Requested' %}
+                            <div class="step-icon me-3 d-flex align-items-center justify-content-center bg-warning text-white rounded-circle" style="width: 36px; height: 36px;">
+                                ✖
+                            </div>
+                            <div>
+                                <h6 class="fw-bold text-warning mb-0">Changes Requested</h6>
+                                <small class="text-muted">Verification details need updates before proceeding.</small>
+                            </div>
+                        {% else %}
+                            <div class="step-icon me-3 d-flex align-items-center justify-content-center border border-2 border-muted text-muted rounded-circle" style="width: 36px; height: 36px; font-weight: bold;">
+                                2
+                            </div>
+                            <div>
+                                <h6 class="fw-bold text-muted mb-0">Verification Submitted</h6>
+                                <small class="text-muted">Submit your government credentials and certificates.</small>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Step 3: Admin Review -->
+                    <div class="timeline-step d-flex align-items-center mb-3">
+                        {% if user.status == 'Under Review' %}
+                            <div class="step-icon me-3 d-flex align-items-center justify-content-center bg-warning text-dark rounded-circle animate-pulse" style="width: 36px; height: 36px; font-weight: bold; font-size: 1.1rem;">
+                                ⏳
+                            </div>
+                            <div>
+                                <h6 class="fw-bold text-warning mb-0">Waiting for Admin Review</h6>
+                                <small class="text-muted">The system administrator is reviewing your details.</small>
+                            </div>
+                        {% elif user.status == 'Approved' %}
+                            <div class="step-icon me-3 d-flex align-items-center justify-content-center bg-success text-white rounded-circle" style="width: 36px; height: 36px;">
+                                ✔
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-0">Admin Review Completed</h6>
+                                <small class="text-muted">Your credentials have been reviewed and approved.</small>
+                            </div>
+                        {% else %}
+                            <div class="step-icon me-3 d-flex align-items-center justify-content-center border border-2 border-muted text-muted rounded-circle" style="width: 36px; height: 36px; font-weight: bold;">
+                                3
+                            </div>
+                            <div>
+                                <h6 class="fw-bold text-muted mb-0">Waiting for Admin Review</h6>
+                                <small class="text-muted">Awaiting screening check by security operations.</small>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Step 4: Dashboard Access -->
+                    <div class="timeline-step d-flex align-items-center">
+                        <div class="step-icon me-3 d-flex align-items-center justify-content-center border border-2 border-muted text-muted rounded-circle" style="width: 36px; height: 36px; font-weight: bold;">
+                            🔒
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-muted mb-0">Dashboard Access</h6>
+                            <small class="text-muted">Full operational and trail management features will be unlocked.</small>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Estimated review time card -->
+                <div class="card bg-light border-0 p-3 rounded-3 mb-4 text-start">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="fs-1">🕒</span>
+                        </div>
+                        <div class="col">
+                            <h6 class="fw-bold m-0">Estimated Review Time</h6>
+                            <p class="text-muted small m-0">Applications are typically processed within 24 to 48 hours.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+                    {% if user.status in ['Pending', 'Changes Requested'] %}
+                        <a href="{{ url_for('verification_form') }}" class="btn btn-primary px-4 py-2">
+                            🧭 Complete Verification Form
+                        </a>
+                    {% else %}
+                        <button class="btn btn-primary px-4 py-2" disabled>
+                            🔒 Complete Verification Form
+                        </button>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('pending_dashboard') }}" class="btn btn-outline-secondary px-4 py-2">
+                        🔄 Refresh Status
+                    </a>
+                    
+                    <button class="btn btn-outline-dark px-4 py-2" data-bs-toggle="modal" data-bs-target="#contactAdminModal">
+                        ✉️ Contact Admin
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Contact Admin Modal -->
+<div class="modal fade" id="contactAdminModal" tabindex="-1" aria-labelledby="contactAdminModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="contactAdminModalLabel">Contact System Administrator</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>For urgent questions regarding your application or status, please reach out to our verification operations desk:</p>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><strong>📧 Operations Email:</strong> <a href="mailto:admin@trekking.com">admin@trekking.com</a></li>
+                    <li class="mb-2"><strong>📞 Support Line:</strong> +91 98765 43210</li>
+                    <li class="mb-2"><strong>🏢 Office Location:</strong> Headquarters Desk 1, Trekking Platform Ops, Chandigarh</li>
+                </ul>
+                <div class="alert alert-info small mt-3 m-0" role="alert">
+                    Please mention your username (<strong>@{{ session.get('username') }}</strong>) and application ID (<strong>#{{ session.get('user_id') }}</strong>) in any correspondence.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Timing animations */
+.animate-pulse {
+    animation: pulse-animation 2s infinite;
+}
+@keyframes pulse-animation {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.timeline-container {
+    position: relative;
+    padding-left: 10px;
+}
+.timeline-step {
+    position: relative;
+}
+.timeline-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 36px;
+    height: calc(100% - 20px);
+    width: 2px;
+    background-color: #dee2e6;
+    z-index: 1;
+}
+</style>
+{% endblock %}

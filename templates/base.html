@@ -41,6 +41,9 @@
                             <a class="nav-link {% if 'admin/staff' in request.path %}active{% endif %}" href="{{ url_for('admin_staff') }}">Manage Staff</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if 'admin/verifications' in request.path %}active{% endif %}" href="{{ url_for('admin_verifications') }}">Verifications</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if 'admin/users' in request.path %}active{% endif %}" href="{{ url_for('admin_users') }}">Manage Users</a>
                         </li>
                         <li class="nav-item">
@@ -49,13 +52,19 @@
                         <li class="nav-item">
                             <a class="nav-link {% if 'admin/blacklist' in request.path %}active{% endif %}" href="{{ url_for('admin_blacklist') }}">Blacklist Directory</a>
                         </li>
-                    {% elif session.get('role') == 'Staff' %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if 'staff/dashboard' in request.path %}active{% endif %}" href="{{ url_for('staff_dashboard') }}">My Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if 'staff/profile' in request.path %}active{% endif %}" href="{{ url_for('staff_profile') }}">Profile</a>
-                        </li>
+                    {% elif session.get('role') in ['Staff', 'Guide'] %}
+                        {% if session.get('status') == 'Approved' %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if 'staff/dashboard' in request.path %}active{% endif %}" href="{{ url_for('staff_dashboard') }}">My Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if 'staff/profile' in request.path %}active{% endif %}" href="{{ url_for('staff_profile') }}">Profile</a>
+                            </li>
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if 'pending-dashboard' in request.path %}active{% endif %}" href="{{ url_for('pending_dashboard') }}">Verification Status</a>
+                            </li>
+                        {% endif %}
                     {% elif session.get('role') == 'Trekker' %}
                         <li class="nav-item">
                             <a class="nav-link {% if 'trekker/dashboard' in request.path %}active{% endif %}" href="{{ url_for('trekker_dashboard') }}">Treks</a>

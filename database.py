@@ -59,6 +59,72 @@ def prepare_database():
         );
     ''')
 
+    # Detailed Guide & Staff Profiles (Approval Workflow)
+    db_cursor.execute('''
+        CREATE TABLE IF NOT EXISTS guide_profiles (
+            user_id INTEGER PRIMARY KEY,
+            phone TEXT,
+            dob TEXT,
+            gender TEXT,
+            address TEXT,
+            city TEXT,
+            state TEXT,
+            pin_code TEXT,
+            country TEXT,
+            emergency_contact_name TEXT,
+            emergency_contact_relation TEXT,
+            emergency_contact_phone TEXT,
+            role TEXT,
+            experience INTEGER,
+            organization TEXT,
+            specialization TEXT,
+            skills TEXT,
+            languages TEXT,
+            availability TEXT,
+            about_me TEXT,
+            approved_viewed INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        );
+    ''')
+
+    # Documents Uploaded Table
+    db_cursor.execute('''
+        CREATE TABLE IF NOT EXISTS documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            document_type TEXT NOT NULL,
+            file_url TEXT NOT NULL,
+            verification_status TEXT NOT NULL DEFAULT 'Pending',
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        );
+    ''')
+
+    # Approval Requests History Table
+    db_cursor.execute('''
+        CREATE TABLE IF NOT EXISTS approval_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            admin_comment TEXT,
+            reviewed_by INTEGER,
+            reviewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (reviewed_by) REFERENCES users (id)
+        );
+    ''')
+
+    # Notifications Table
+    db_cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        );
+    ''')
+
     # Migration check: Ensure new columns exist in staff_profiles for existing databases
     db_cursor.execute("PRAGMA table_info(staff_profiles)")
     existing_columns = [row['name'] for row in db_cursor.fetchall()]
@@ -122,7 +188,7 @@ def prepare_database():
     if not db_cursor.fetchone():
         hashed_admin_pwd = generate_password_hash('admin123')
         db_cursor.execute(
-            "INSERT INTO users (username, password_hash, role, status, name, email, phone, location) VALUES (?, ?, 'Admin', 'Approved', 'Platform Admin', 'admin@trekking.com', '+1-555-0100', 'Office 1')",
+            "INSERT INTO users (username, password_hash, role, status, name, email, phone, location) VALUES (?, ?, 'Admin', 'Approved', 'Platform Admin', 'admin@trekking.com', '+91-98765-43210', 'Office 1, Chandigarh')",
             ('admin', hashed_admin_pwd)
         )
         connection.commit()
@@ -173,6 +239,16 @@ def prepare_database():
             db_cursor.execute(
                 "INSERT INTO staff_profiles (user_id, name, contact_details, age, gender, experience, emergency_contact) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (staff_user_id, name, f"Email: {email}, Phone: {phone}, Location: {loc}", age, gender, exp, emergency)
+            )
+            db_cursor.execute(
+                """INSERT OR IGNORE INTO guide_profiles (user_id, phone, dob, gender, address, city, state, pin_code, country,
+                                              emergency_contact_name, emergency_contact_relation, emergency_contact_phone,
+                                              role, experience, organization, specialization, skills, languages, availability, about_me)
+                   VALUES (?, ?, '1990-01-01', ?, ?, ?, ?, '123456', 'India',
+                           'Emergency Contact', 'Family', ?,
+                           'Staff', ?, 'TrekManagement Org', 'Mountain Guiding',
+                           'Camping,Trekking,First Aid', 'English,Hindi', 'Weekdays,Weekends', ?)""",
+                (staff_user_id, phone, gender, loc, loc, loc, emergency, age, exp)
             )
 
         # 2. Seed 40 Trekkers (trekker1 to trekker40)

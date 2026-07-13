@@ -1,9 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort, send_from_directory
 from functools import wraps
-# Milestone: Charts and Visualization
-# Milestone: Frontend and Backend Validation
-# Milestone: Flask-Login Integration and Security
 import os
+from datetime import datetime
+from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import create_db_session, prepare_database
 
@@ -11,6 +10,35 @@ app = Flask(__name__)
 app.secret_key = os.urandom(32)
 
 prepare_database()
+
+# Configure upload path and rules
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def send_email_notification(recipient_email, subject, body):
+    """Mocks sending email notifications by writing them to email_logs.txt."""
+    log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'email_logs.txt')
+    log_entry = f"=========================================\n"
+    log_entry += f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+    log_entry += f"To: {recipient_email}\n"
+    log_entry += f"Subject: {subject}\n"
+    log_entry += f"-----------------------------------------\n"
+    log_entry += f"{body}\n"
+    log_entry += f"=========================================\n\n"
+    try:
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(log_entry)
+    except Exception as e:
+        print("Failed to write mock email log:", e)
+    print(f"[EMAIL MOCK] Sent to {recipient_email}: {subject}")
+
+def add_dashboard_notification(user_id, message):
+    """Creates a dashboard notification for the user."""
+    conn = create_db_session()
+    conn.execute("INSERT INTO notifications (user_id, message) VALUES (?, ?)", (user_id, message))
+    conn.commit()
+    conn.close()
 
 def verify_user_logged_in(func):
     """Enforces that a valid user session exists."""
@@ -23,14 +51,18 @@ def verify_user_logged_in(func):
     return wrapper
 
 def verify_user_access_role(permitted_roles):
-    """Restricts access to specific user roles (e.g., Admin, Staff, Trekker)."""
+    """Restricts access to specific user roles (e.g., Admin, Staff, Guide, Trekker)."""
+    expanded_roles = list(permitted_roles)
+    if 'Staff' in expanded_roles and 'Guide' not in expanded_roles:
+        expanded_roles.append('Guide')
+    
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             if 'user_id' not in session:
                 flash("Authentication required. Please log in first.", "error")
                 return redirect(url_for('login'))
-            if session.get('role') not in permitted_roles:
+            if session.get('role') not in expanded_roles:
                 flash("Unauthorized access. You do not have the required permissions.", "error")
                 return redirect(url_for('dashboard'))
             return func(*args, **kwargs)
@@ -57,22 +89,26 @@ def enforce_security_checks():
             flash("Your account has been deleted.", "error")
             return redirect(url_for('login'))
 
+        session['status'] = current_user['status']
+
         if current_user['status'] == 'Blacklisted':
             session.clear()
             flash("Access denied: Your account has been blacklisted or deactivated.", "error")
             return redirect(url_for('login'))
 
-        if current_user['status'] == 'Pending' and current_user['role'] == 'Staff':
-            session.clear()
-            flash("Your registration is pending administrator approval.", "error")
-            return redirect(url_for('login'))
+        # If a Guide or Staff is NOT approved, they can ONLY visit the pending dashboard,
+        # verification form, logout, or serve-document endpoints.
+        if current_user['role'] in ['Staff', 'Guide'] and current_user['status'] != 'Approved':
+            allowed_pending_endpoints = ['pending_dashboard', 'verification_form', 'logout', 'serve_document', 'static']
+            if request.endpoint not in allowed_pending_endpoints:
+                return redirect(url_for('pending_dashboard'))
 
 @app.route('/')
 def home():
     """Renders the public application homepage with dynamic database counts."""
     conn = create_db_session()
     num_trekkers = conn.execute("SELECT COUNT(*) FROM users WHERE role='Trekker'").fetchone()[0]
-    num_staff = conn.execute("SELECT COUNT(*) FROM users WHERE role='Staff' AND status='Approved'").fetchone()[0]
+    num_staff = conn.execute("SELECT COUNT(*) FROM users WHERE role IN ('Staff', 'Guide') AND status='Approved'").fetchone()[0]
     num_treks = conn.execute("SELECT COUNT(*) FROM treks").fetchone()[0]
     conn.close()
     return render_template(
@@ -93,24 +129,30 @@ def login():
         pwd = request.form.get('password', '')
 
         if not uname or not pwd:
-            flash("Please enter both username and password.", "error")
+            flash("Please enter both username/email and password.", "error")
             return render_template('login.html')
 
         conn = create_db_session()
-        db_user = conn.execute("SELECT * FROM users WHERE username = ?", (uname,)).fetchone()
+        # Support logging in by username OR email
+        db_user = conn.execute("SELECT * FROM users WHERE username = ? OR email = ?", (uname, uname)).fetchone()
         conn.close()
 
         if db_user and check_password_hash(db_user['password_hash'], pwd):
-            if db_user['status'] == 'Pending':
-                flash("Your account is pending administrator approval.", "error")
-                return render_template('login.html')
-            elif db_user['status'] == 'Blacklisted':
+            if db_user['status'] == 'Blacklisted':
                 flash("Access denied: Your account has been deactivated or blacklisted.", "error")
                 return render_template('login.html')
 
             session['user_id'] = db_user['id']
             session['username'] = db_user['username']
             session['role'] = db_user['role']
+            session['status'] = db_user['status']
+
+            if db_user['role'] in ['Staff', 'Guide']:
+                conn = create_db_session()
+                profile = conn.execute("SELECT approved_viewed FROM guide_profiles WHERE user_id = ?", (db_user['id'],)).fetchone()
+                conn.close()
+                if db_user['status'] == 'Approved' and profile and profile['approved_viewed'] == 0:
+                    session['show_approval_success'] = True
 
             flash(f"Welcome back, {db_user['username']}!", "success")
             return redirect(url_for('dashboard'))
@@ -167,7 +209,7 @@ def register_trekker():
 
 @app.route('/register/staff', methods=['GET', 'POST'])
 def register_staff():
-    """Registers a new guide applicant, defaulting to pending status."""
+    """Registers a new guide or staff applicant, defaulting to pending status."""
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
 
@@ -179,6 +221,10 @@ def register_staff():
         location = request.form.get('location', '').strip()
         pwd = request.form.get('password', '')
         confirm_pwd = request.form.get('confirm_password', '')
+        role = request.form.get('role', 'Staff').strip()
+
+        if role not in ['Staff', 'Guide']:
+            role = 'Staff'
 
         if not uname or not real_name or not email or not phone or not location or not pwd or not confirm_pwd:
             flash("All registration fields are required.", "error")
@@ -198,20 +244,41 @@ def register_staff():
         hashed_pwd = generate_password_hash(pwd)
         try:
             cursor = conn.cursor()
+            # Register user with 'Pending' status and selected role (Staff or Guide)
             cursor.execute(
-                "INSERT INTO users (username, password_hash, role, status, name, email, phone, location) VALUES (?, ?, 'Staff', 'Pending', ?, ?, ?, ?)",
-                (uname, hashed_pwd, real_name, email, phone, location)
+                "INSERT INTO users (username, password_hash, role, status, name, email, phone, location) VALUES (?, ?, ?, 'Pending', ?, ?, ?, ?)",
+                (uname, hashed_pwd, role, real_name, email, phone, location)
             )
             new_staff_id = cursor.lastrowid
+            
+            # Seed staff_profiles for backward compatibility
             cursor.execute(
                 "INSERT INTO staff_profiles (user_id, name, contact_details, age, gender, experience, emergency_contact) VALUES (?, ?, ?, NULL, NULL, NULL, NULL)",
                 (new_staff_id, real_name, f"Email: {email}, Phone: {phone}, Location: {location}")
             )
+            
+            # Seed guide_profiles with default values and approved_viewed = 0
+            cursor.execute(
+                "INSERT INTO guide_profiles (user_id, role, phone, approved_viewed) VALUES (?, ?, ?, 0)",
+                (new_staff_id, role, phone)
+            )
+            
             conn.commit()
-            flash("Application submitted. Access will be granted once Approved by Admin.", "success")
+            
+            # Log mock email notification
+            send_email_notification(
+                email,
+                "TrekManagement Account Registration Submitted",
+                f"Dear {real_name},\n\nThank you for registering as a {role} at TrekManagement. "
+                "Your account status is currently Pending. "
+                "Please log in and submit the Verification Form to request administrator review."
+            )
+            
+            flash("Account registered successfully! Please log in to complete your verification profile.", "success")
             return redirect(url_for('login'))
-        except Exception:
-            flash("Failed to register staff account. Please try again.", "error")
+        except Exception as e:
+            conn.rollback()
+            flash("Failed to register account. Please try again.", "error")
         finally:
             conn.close()
 
@@ -231,8 +298,17 @@ def dashboard():
     user_role = session.get('role')
     if user_role == 'Admin':
         return redirect(url_for('admin_dashboard'))
-    elif user_role == 'Staff':
-        return redirect(url_for('staff_dashboard'))
+    elif user_role in ['Staff', 'Guide']:
+        conn = create_db_session()
+        u = conn.execute("SELECT status FROM users WHERE id = ?", (session['user_id'],)).fetchone()
+        conn.close()
+        
+        if u and u['status'] == 'Approved':
+            if session.get('show_approval_success'):
+                return redirect(url_for('approval_success'))
+            return redirect(url_for('staff_dashboard'))
+        else:
+            return redirect(url_for('pending_dashboard'))
     elif user_role == 'Trekker':
         return redirect(url_for('trekker_dashboard'))
     else:
@@ -249,14 +325,14 @@ def admin_dashboard():
         'total_treks': conn.execute("SELECT COUNT(*) FROM treks").fetchone()[0],
         'total_bookings': conn.execute("SELECT COUNT(*) FROM bookings").fetchone()[0],
         'total_trekkers': conn.execute("SELECT COUNT(*) FROM users WHERE role='Trekker'").fetchone()[0],
-        'total_staff': conn.execute("SELECT COUNT(*) FROM users WHERE role='Staff'").fetchone()[0]
+        'total_staff': conn.execute("SELECT COUNT(*) FROM users WHERE role IN ('Staff', 'Guide')").fetchone()[0]
     }
 
     pending_list = conn.execute(
         """SELECT u.id as user_id, u.username, sp.name, sp.contact_details
            FROM users u
            JOIN staff_profiles sp ON u.id = sp.user_id
-           WHERE u.role='Staff' AND u.status='Pending'"""
+           WHERE u.role IN ('Staff', 'Guide') AND u.status='Pending'"""
     ).fetchall()
 
     conn.close()
@@ -267,7 +343,35 @@ def admin_dashboard():
 def admin_approve_staff(user_id):
     """Approves a staff guide registration request."""
     conn = create_db_session()
-    conn.execute("UPDATE users SET status = 'Approved' WHERE id = ? AND role = 'Staff'", (user_id,))
+    conn.execute("UPDATE users SET status = 'Approved' WHERE id = ? AND role IN ('Staff', 'Guide')", (user_id,))
+    
+    # Initialize/Sync default profiles if needed
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if user:
+        profile = conn.execute("SELECT * FROM guide_profiles WHERE user_id = ?", (user_id,)).fetchone()
+        if not profile:
+            conn.execute(
+                """INSERT OR IGNORE INTO guide_profiles (user_id, role, phone, approved_viewed)
+                   VALUES (?, ?, ?, 0)""",
+                (user_id, user['role'], user['phone'])
+            )
+            
+        conn.execute(
+            """INSERT OR REPLACE INTO staff_profiles (user_id, name, contact_details, age, gender, experience, emergency_contact)
+               VALUES (?, ?, ?, NULL, NULL, NULL, NULL)""",
+            (user_id, user['name'], f"Email: {user['email']}, Phone: {user['phone']}, Location: {user['location']}")
+        )
+        
+        conn.execute(
+            "INSERT INTO approval_requests (user_id, status, admin_comment, reviewed_by, reviewed_at) VALUES (?, 'Approved', 'Approved via quick admin action.', ?, CURRENT_TIMESTAMP)",
+            (user_id, session.get('user_id'))
+        )
+        
+        conn.execute(
+            "INSERT INTO notifications (user_id, message) VALUES (?, 'Your account has been approved by the administrator.')",
+            (user_id,)
+        )
+        
     conn.commit()
     conn.close()
     flash("Staff account registration approved.", "success")
@@ -278,7 +382,7 @@ def admin_approve_staff(user_id):
 def admin_reject_staff(user_id):
     """Rejects and removes a pending staff profile."""
     conn = create_db_session()
-    conn.execute("DELETE FROM users WHERE id = ? AND role = 'Staff'", (user_id,))
+    conn.execute("DELETE FROM users WHERE id = ? AND role IN ('Staff', 'Guide')", (user_id,))
     conn.commit()
     conn.close()
     flash("Staff guide request rejected and profile deleted.", "success")
@@ -409,14 +513,14 @@ def admin_staff():
                 """SELECT u.id as user_id, u.username, u.status, sp.name, sp.contact_details, sp.age, sp.gender, sp.experience, sp.emergency_contact
                    FROM users u
                    JOIN staff_profiles sp ON u.id = sp.user_id
-                   WHERE u.role='Staff' AND u.status != 'Blacklisted' AND u.id = ?""", (int(search_query),)
+                   WHERE u.role IN ('Staff', 'Guide') AND u.status != 'Blacklisted' AND u.id = ?""", (int(search_query),)
             ).fetchall()
         else:
             staff_list = conn.execute(
                 """SELECT u.id as user_id, u.username, u.status, sp.name, sp.contact_details, sp.age, sp.gender, sp.experience, sp.emergency_contact
                    FROM users u
                    JOIN staff_profiles sp ON u.id = sp.user_id
-                   WHERE u.role='Staff' AND u.status != 'Blacklisted' AND (sp.name LIKE ? OR u.username LIKE ?)""",
+                   WHERE u.role IN ('Staff', 'Guide') AND u.status != 'Blacklisted' AND (sp.name LIKE ? OR u.username LIKE ?)""",
                 (f"%{search_query}%", f"%{search_query}%")
             ).fetchall()
     else:
@@ -424,14 +528,14 @@ def admin_staff():
             """SELECT u.id as user_id, u.username, u.status, sp.name, sp.contact_details, sp.age, sp.gender, sp.experience, sp.emergency_contact
                FROM users u
                JOIN staff_profiles sp ON u.id = sp.user_id
-               WHERE u.role='Staff' AND u.status != 'Blacklisted'"""
+               WHERE u.role IN ('Staff', 'Guide') AND u.status != 'Blacklisted'"""
         ).fetchall()
 
     active_guides = conn.execute(
         """SELECT u.id as user_id, sp.name, u.username
            FROM users u
            JOIN staff_profiles sp ON u.id = sp.user_id
-           WHERE u.role='Staff' AND u.status='Approved'"""
+           WHERE u.role IN ('Staff', 'Guide') AND u.status='Approved'"""
     ).fetchall()
 
     treks = conn.execute(
@@ -456,7 +560,7 @@ def admin_assign_staff():
         return redirect(url_for('admin_staff'))
 
     conn = create_db_session()
-    guide = conn.execute("SELECT id FROM users WHERE id = ? AND role = 'Staff' AND status = 'Approved'", (staff_id,)).fetchone()
+    guide = conn.execute("SELECT id FROM users WHERE id = ? AND role IN ('Staff', 'Guide') AND status = 'Approved'", (staff_id,)).fetchone()
     if not guide:
         conn.close()
         flash("Selected guide is invalid or inactive.", "error")
@@ -473,7 +577,7 @@ def admin_assign_staff():
 def admin_toggle_blacklist_staff(user_id):
     """Toggles blacklist/activation status of staff guides."""
     conn = create_db_session()
-    user = conn.execute("SELECT status FROM users WHERE id = ? AND role = 'Staff'", (user_id,)).fetchone()
+    user = conn.execute("SELECT status FROM users WHERE id = ? AND role IN ('Staff', 'Guide')", (user_id,)).fetchone()
     if user:
         new_status = 'Blacklisted' if user['status'] == 'Approved' else 'Approved'
         conn.execute("UPDATE users SET status = ? WHERE id = ?", (new_status, user_id))
@@ -491,7 +595,7 @@ def admin_toggle_blacklist_staff(user_id):
 def admin_delete_staff(user_id):
     """Deletes a staff user permanently."""
     conn = create_db_session()
-    conn.execute("DELETE FROM users WHERE id = ? AND role = 'Staff'", (user_id,))
+    conn.execute("DELETE FROM users WHERE id = ? AND role IN ('Staff', 'Guide')", (user_id,))
     conn.commit()
     conn.close()
     flash("Staff guide deleted permanently.", "success")
@@ -511,7 +615,7 @@ def admin_blacklist():
         """SELECT u.id as user_id, u.username, u.status, sp.name, sp.contact_details, sp.age, sp.gender, sp.experience, sp.emergency_contact
            FROM users u
            JOIN staff_profiles sp ON u.id = sp.user_id
-           WHERE u.role = 'Staff' AND u.status = 'Blacklisted' ORDER BY u.id DESC"""
+           WHERE u.role IN ('Staff', 'Guide') AND u.status = 'Blacklisted' ORDER BY u.id DESC"""
     ).fetchall()
     
     conn.close()
@@ -1260,6 +1364,524 @@ def api_bookings():
     bookings = conn.execute("SELECT * FROM bookings").fetchall()
     conn.close()
     return jsonify([dict(b) for b in bookings])
+
+# ==============================================================================
+# GUIDE & STAFF APPROVAL WORKFLOW ROUTES
+# ==============================================================================
+
+@app.route('/pending-dashboard')
+@verify_user_logged_in
+def pending_dashboard():
+    """Renders the wait screen or dashboard with progress tracking for unapproved staff/guides."""
+    user_id = session.get('user_id')
+    user_role = session.get('role')
+    if user_role not in ['Staff', 'Guide']:
+        return redirect(url_for('dashboard'))
+
+    conn = create_db_session()
+    user = conn.execute("SELECT status, name, role, email FROM users WHERE id = ?", (user_id,)).fetchone()
+    
+    # If already approved, direct them to standard dashboard
+    if user['status'] == 'Approved':
+        conn.close()
+        return redirect(url_for('dashboard'))
+
+    # Fetch admin notes / feedback if status is Changes Requested
+    latest_request = conn.execute(
+        "SELECT admin_comment FROM approval_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+        (user_id,)
+    ).fetchone()
+    
+    admin_comment = latest_request['admin_comment'] if latest_request else None
+    
+    # Fetch notifications
+    notifs = conn.execute("SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 5", (user_id,)).fetchall()
+    
+    # Mark notifications as read
+    conn.execute("UPDATE notifications SET is_read = 1 WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+    return render_template(
+        'pending_dashboard.html',
+        user=user,
+        admin_comment=admin_comment,
+        notifications=notifs
+    )
+
+
+@app.route('/verification-form', methods=['GET', 'POST'])
+@verify_user_logged_in
+def verification_form():
+    """Handles the multi-section professional verification profile form submission."""
+    user_id = session.get('user_id')
+    user_role = session.get('role')
+    if user_role not in ['Staff', 'Guide']:
+        return redirect(url_for('dashboard'))
+
+    conn = create_db_session()
+    user_data = conn.execute("SELECT status, name, email, role FROM users WHERE id = ?", (user_id,)).fetchone()
+
+    # Block access if already approved or currently under review
+    if user_data['status'] in ['Approved', 'Under Review']:
+        conn.close()
+        flash("Your profile is already submitted or approved.", "info")
+        return redirect(url_for('pending_dashboard'))
+
+    # prefill form fields if Guide/Staff has previously submitted
+    profile = conn.execute("SELECT * FROM guide_profiles WHERE user_id = ?", (user_id,)).fetchone()
+    
+    # Fetch uploaded documents
+    docs = conn.execute("SELECT * FROM documents WHERE user_id = ?", (user_id,)).fetchall()
+    existing_docs = {doc['document_type']: doc for doc in docs}
+
+    if request.method == 'POST':
+        MAX_FILE_SIZE = 5 * 1024 * 1024 # 5MB
+
+        phone = request.form.get('phone', '').strip()
+        dob = request.form.get('dob', '').strip()
+        gender = request.form.get('gender', '').strip()
+        
+        address = request.form.get('address', '').strip()
+        city = request.form.get('city', '').strip()
+        state = request.form.get('state', '').strip()
+        pin_code = request.form.get('pin_code', '').strip()
+        country = request.form.get('country', '').strip()
+
+        emergency_name = request.form.get('emergency_contact_name', '').strip()
+        emergency_relation = request.form.get('emergency_contact_relation', '').strip()
+        emergency_phone = request.form.get('emergency_contact_phone', '').strip()
+
+        experience = request.form.get('experience', type=int) or 0
+        organization = request.form.get('organization', '').strip()
+        specialization = request.form.get('specialization', '').strip()
+
+        skills_list = request.form.getlist('skills')
+        skills_str = ",".join(skills_list)
+
+        languages_list = request.form.getlist('languages')
+        languages_str = ",".join(languages_list)
+
+        availability_list = request.form.getlist('availability')
+        availability_str = ",".join(availability_list)
+
+        about_me = request.form.get('about_me', '').strip()
+        declaration = request.form.get('declaration')
+        
+        # Validation checks
+        if not phone or not dob or not gender or not address or not city or not state or not pin_code or not country or not emergency_name or not emergency_phone or not declaration:
+            conn.close()
+            flash("Please fill in all mandatory text fields and check the Declaration box.", "error")
+            return redirect(url_for('verification_form'))
+
+        # Document upload mappings
+        file_fields = [
+            ('profile_photo', 'profile_photo', not existing_docs.get('profile_photo')),
+            ('id_proof', 'id_proof', not existing_docs.get('id_proof')),
+            ('cert_first_aid', 'cert_first_aid', False),
+            ('cert_mountaineering', 'cert_mountaineering', False),
+            ('cert_adventure', 'cert_adventure', False),
+            ('cert_rescue', 'cert_rescue', False),
+            ('cert_other', 'cert_other', False),
+            ('resume', 'resume', not existing_docs.get('resume')),
+            ('medical_fitness', 'medical_fitness', not existing_docs.get('medical_fitness')),
+            ('police_verification', 'police_verification', False),
+            ('experience_cert', 'experience_cert', False)
+        ]
+
+        uploaded_files_data = []
+
+        # Validate file uploads before saving
+        for field_name, doc_type, required in file_fields:
+            file = request.files.get(field_name)
+            if file and file.filename:
+                # Check size limit
+                file.seek(0, os.SEEK_END)
+                size = file.tell()
+                file.seek(0)
+                if size > MAX_FILE_SIZE:
+                    conn.close()
+                    flash(f"File size error: '{field_name}' exceeds the 5MB file size limit.", "error")
+                    return redirect(url_for('verification_form'))
+                
+                # Check extension
+                ext = os.path.splitext(file.filename)[1].lower()
+                if ext not in ['.jpg', '.jpeg', '.png', '.pdf', '.docx', '.doc']:
+                    conn.close()
+                    flash(f"Invalid file type for {field_name}. Upload JPG, PNG, PDF or DOCX only.", "error")
+                    return redirect(url_for('verification_form'))
+                
+                uploaded_files_data.append((file, doc_type))
+            elif required:
+                conn.close()
+                flash(f"Required document '{field_name}' is missing.", "error")
+                return redirect(url_for('verification_form'))
+
+        try:
+            cursor = conn.cursor()
+            
+            # 1. Update users table with basic info
+            cursor.execute(
+                "UPDATE users SET phone = ?, gender = ?, age = ?, emergency_contact = ? WHERE id = ?",
+                (phone, gender, datetime.now().year - int(dob.split('-')[0]) if dob else None, emergency_phone, user_id)
+            )
+
+            # 2. Insert or replace guide_profile data
+            cursor.execute(
+                """INSERT OR REPLACE INTO guide_profiles 
+                   (user_id, phone, dob, gender, address, city, state, pin_code, country,
+                    emergency_contact_name, emergency_contact_relation, emergency_contact_phone,
+                    role, experience, organization, specialization, skills, languages, availability, about_me, approved_viewed)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)""",
+                (user_id, phone, dob, gender, address, city, state, pin_code, country,
+                 emergency_name, emergency_relation, emergency_phone,
+                 user_data['role'], experience, organization, specialization, skills_str, languages_str, availability_str, about_me)
+            )
+
+            # 3. Save files and insert to documents table
+            for file, doc_type in uploaded_files_data:
+                ext = os.path.splitext(file.filename)[1].lower()
+                filename = f"user_{user_id}_{doc_type}{ext}"
+                safe_name = secure_filename(filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
+                file.save(filepath)
+
+                # Insert or update documents
+                existing_doc = cursor.execute("SELECT id FROM documents WHERE user_id = ? AND document_type = ?", (user_id, doc_type)).fetchone()
+                if existing_doc:
+                    cursor.execute(
+                        "UPDATE documents SET file_url = ?, verification_status = 'Pending' WHERE id = ?",
+                        (safe_name, existing_doc['id'])
+                    )
+                else:
+                    cursor.execute(
+                        "INSERT INTO documents (user_id, document_type, file_url, verification_status) VALUES (?, ?, ?, 'Pending')",
+                        (user_id, doc_type, safe_name)
+                    )
+
+            # 4. Update status in users to 'Under Review'
+            cursor.execute("UPDATE users SET status = 'Under Review' WHERE id = ?", (user_id,))
+            
+            # 5. Insert approval history request record
+            cursor.execute(
+                "INSERT INTO approval_requests (user_id, status, admin_comment) VALUES (?, 'Under Review', 'Verification profile submitted by user')",
+                (user_id,)
+            )
+
+            # 6. Notify Administrators
+            admin = cursor.execute("SELECT id FROM users WHERE role = 'Admin' LIMIT 1").fetchone()
+            if admin:
+                cursor.execute(
+                    "INSERT INTO notifications (user_id, message) VALUES (?, ?)",
+                    (admin['id'], f"New Verification profile submitted by {user_data['name']} (@{session.get('username')})")
+                )
+
+            conn.commit()
+
+            # Mock Email
+            send_email_notification(
+                user_data['email'],
+                "TrekManagement Profile Under Review",
+                f"Hello {user_data['name']},\n\nYour guide/staff verification profile has been submitted successfully and is now Under Review. "
+                "The administrator will review your credentials shortly.\n\nEstimated review time: 24-48 hours."
+            )
+
+            flash("Verification Submitted Successfully! Your profile is now under review.", "success")
+            conn.close()
+            return redirect(url_for('pending_dashboard'))
+
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            flash("Database update failed. Please verify your entries.", "error")
+            return redirect(url_for('verification_form'))
+
+    conn.close()
+    return render_template(
+        'verification_form.html',
+        user=user_data,
+        profile=profile,
+        existing_docs=existing_docs
+    )
+
+
+@app.route('/serve-document/<int:document_id>')
+@verify_user_logged_in
+def serve_document(document_id):
+    """Safely serves uploaded files to authenticated users and administrators."""
+    conn = create_db_session()
+    doc = conn.execute("SELECT * FROM documents WHERE id = ?", (document_id,)).fetchone()
+    conn.close()
+
+    if not doc:
+        abort(404)
+
+    # Security check: Admin can access any document. Otherwise, users can only access their own.
+    if session.get('role') != 'Admin' and doc['user_id'] != session.get('user_id'):
+        abort(403)
+
+    return send_from_directory(app.config['UPLOAD_FOLDER'], doc['file_url'])
+
+
+@app.route('/approval-success')
+@verify_user_logged_in
+def approval_success():
+    """Renders the congratulations screen upon first login of an approved user."""
+    user_id = session.get('user_id')
+    user_role = session.get('role')
+    if user_role not in ['Staff', 'Guide']:
+        return redirect(url_for('dashboard'))
+
+    conn = create_db_session()
+    user = conn.execute("SELECT status FROM users WHERE id = ?", (user_id,)).fetchone()
+    
+    if not user or user['status'] != 'Approved':
+        conn.close()
+        return redirect(url_for('pending_dashboard'))
+
+    # Mark as viewed in guide_profiles
+    cursor = conn.cursor()
+    cursor.execute("UPDATE guide_profiles SET approved_viewed = 1 WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+    # Clear session flag
+    session.pop('show_approval_success', None)
+
+    return render_template('approval_success.html')
+
+
+# ==============================================================================
+# ADMINISTRATOR VERIFICATION MANAGEMENT ROUTES
+# ==============================================================================
+
+@app.route('/admin/verifications')
+@verify_user_access_role(['Admin'])
+def admin_verifications():
+    """Renders the Dedicated Guide & Staff Verification directory dashboard."""
+    conn = create_db_session()
+    
+    # Get filters
+    search_query = request.args.get('search', '').strip()
+    status_filter = request.args.get('status', '').strip()
+    role_filter = request.args.get('role', '').strip()
+
+    # Fetch users requiring verification (role Staff or Guide)
+    query = """
+        SELECT u.id as user_id, u.name, u.username, u.role, u.status, u.created_at,
+               gp.experience,
+               (SELECT file_url FROM documents WHERE user_id = u.id AND document_type = 'profile_photo') as photo_url,
+               (SELECT id FROM documents WHERE user_id = u.id AND document_type = 'profile_photo') as photo_id,
+               (SELECT MAX(reviewed_at) FROM approval_requests WHERE user_id = u.id) as submitted_date
+        FROM users u
+        LEFT JOIN guide_profiles gp ON u.id = gp.user_id
+        WHERE u.role IN ('Staff', 'Guide')
+    """
+    params = []
+
+    if search_query:
+        query += " AND (u.name LIKE ? OR u.username LIKE ?)"
+        params.extend([f"%{search_query}%", f"%{search_query}%"])
+    
+    if status_filter:
+        query += " AND u.status = ?"
+        params.append(status_filter)
+    else:
+        # Default: show unapproved first, or all except Approved
+        query += " AND u.status != 'Approved'"
+
+    if role_filter:
+        query += " AND u.role = ?"
+        params.append(role_filter)
+
+    query += " ORDER BY u.id DESC"
+    requests_list = conn.execute(query, params).fetchall()
+
+    # Fetch history of approval actions
+    history_query = """
+        SELECT ar.*, u.name, u.username, u.role,
+               admin.username as admin_name
+        FROM approval_requests ar
+        JOIN users u ON ar.user_id = u.id
+        LEFT JOIN users admin ON ar.reviewed_by = admin.id
+        ORDER BY ar.id DESC LIMIT 30
+    """
+    history_list = conn.execute(history_query).fetchall()
+    
+    conn.close()
+
+    return render_template(
+        'admin_verifications.html',
+        requests=requests_list,
+        history=history_list,
+        search_query=search_query,
+        status_filter=status_filter,
+        role_filter=role_filter
+    )
+
+
+@app.route('/admin/verifications/review/<int:user_id>')
+@verify_user_access_role(['Admin'])
+def admin_review_profile(user_id):
+    """Loads a full, 12-section profile review panel for the administrator."""
+    conn = create_db_session()
+    
+    # Fetch base user details
+    user = conn.execute("SELECT * FROM users WHERE id = ? AND role IN ('Staff', 'Guide')", (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        abort(404)
+
+    # Fetch guide profiles detailed fields
+    profile = conn.execute("SELECT * FROM guide_profiles WHERE user_id = ?", (user_id,)).fetchone()
+    
+    # Fetch documents with their id and types
+    docs = conn.execute("SELECT * FROM documents WHERE user_id = ?", (user_id,)).fetchall()
+    
+    # Fetch audit log requests
+    logs = conn.execute(
+        """SELECT ar.*, admin.username as admin_name 
+           FROM approval_requests ar 
+           LEFT JOIN users admin ON ar.reviewed_by = admin.id
+           WHERE ar.user_id = ? ORDER BY ar.id DESC""", (user_id,)
+    ).fetchall()
+
+    conn.close()
+
+    # Turn documents list into a dictionary
+    documents_dict = {d['document_type']: d for d in docs}
+
+    return render_template(
+        'admin_review.html',
+        candidate=user,
+        profile=profile,
+        documents=documents_dict,
+        history_logs=logs
+    )
+
+
+@app.route('/admin/verifications/action/<int:user_id>', methods=['POST'])
+@verify_user_access_role(['Admin'])
+def admin_verification_action(user_id):
+    """Executes the administrator's review action: Approve, Reject, or Request Changes."""
+    action = request.form.get('action')
+    feedback = request.form.get('feedback', '').strip()
+    admin_id = session.get('user_id')
+
+    if action not in ['approve', 'reject', 'request_changes']:
+        flash("Invalid verification action specified.", "error")
+        return redirect(url_for('admin_verifications'))
+
+    conn = create_db_session()
+    user = conn.execute("SELECT * FROM users WHERE id = ? AND role IN ('Staff', 'Guide')", (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        abort(404)
+
+    try:
+        cursor = conn.cursor()
+        if action == 'approve':
+            cursor.execute("UPDATE users SET status = 'Approved' WHERE id = ?", (user_id,))
+            cursor.execute(
+                "INSERT INTO approval_requests (user_id, status, admin_comment, reviewed_by, reviewed_at) VALUES (?, 'Approved', ?, ?, CURRENT_TIMESTAMP)",
+                (user_id, feedback or "Account approved by administrator.", admin_id)
+            )
+
+            # Synchronize guide_profiles to staff_profiles
+            profile = cursor.execute("SELECT * FROM guide_profiles WHERE user_id = ?", (user_id,)).fetchone()
+            if profile:
+                age = None
+                if profile['dob']:
+                    try:
+                        age = datetime.now().year - int(profile['dob'].split('-')[0])
+                    except Exception:
+                        pass
+                
+                exp_text = f"Experience: {profile['experience']} years. Specialization: {profile['specialization']}. Skills: {profile['skills']}. Bio: {profile['about_me']}"
+                contact_details = f"Email: {user['email']}, Phone: {profile['phone']}, Location: {profile['city']}, {profile['state']}"
+                
+                cursor.execute(
+                    """INSERT OR REPLACE INTO staff_profiles 
+                       (user_id, name, contact_details, age, gender, experience, emergency_contact)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (user_id, user['name'], contact_details, age, profile['gender'], exp_text, profile['emergency_contact_phone'])
+                )
+            
+            cursor.execute(
+                "INSERT INTO notifications (user_id, message) VALUES (?, 'Congratulations! Your verification profile has been approved. You now have access to TrekManagement.')",
+                (user_id,)
+            )
+
+            conn.commit()
+
+            # Mock Email
+            send_email_notification(
+                user['email'],
+                "TrekManagement - Account Approved!",
+                f"Dear {user['name']},\n\nCongratulations! Your application has been approved by the administrator. "
+                "You now have full access to the Trek Management Dashboard.\n\nLog in now."
+            )
+
+            flash(f"Candidate {user['name']} has been approved.", "success")
+
+        elif action == 'request_changes':
+            if not feedback:
+                conn.close()
+                flash("Feedback details are required when requesting changes.", "error")
+                return redirect(url_for('admin_review_profile', user_id=user_id))
+
+            cursor.execute("UPDATE users SET status = 'Changes Requested' WHERE id = ?", (user_id,))
+            cursor.execute(
+                "INSERT INTO approval_requests (user_id, status, admin_comment, reviewed_by, reviewed_at) VALUES (?, 'Changes Requested', ?, ?, CURRENT_TIMESTAMP)",
+                (user_id, feedback, admin_id)
+            )
+            cursor.execute(
+                "INSERT INTO notifications (user_id, message) VALUES (?, ?)",
+                (user_id, f"Admin requested changes to your profile. Feedback: '{feedback}'")
+            )
+
+            conn.commit()
+
+            # Mock Email
+            send_email_notification(
+                user['email'],
+                "TrekManagement - Action Required: Changes Requested",
+                f"Hello {user['name']},\n\nDuring the verification review, the administrator requested changes to your profile. "
+                f"Please log in to address the following feedback:\n\n\"{feedback}\"\n\nResubmit the form at your earliest convenience."
+            )
+
+            flash(f"Feedback submitted. Account status set to Changes Requested.", "info")
+
+        elif action == 'reject':
+            cursor.execute("UPDATE users SET status = 'Rejected' WHERE id = ?", (user_id,))
+            cursor.execute(
+                "INSERT INTO approval_requests (user_id, status, admin_comment, reviewed_by, reviewed_at) VALUES (?, 'Rejected', ?, ?, CURRENT_TIMESTAMP)",
+                (user_id, feedback or "Account rejected during screening.", admin_id)
+            )
+            cursor.execute(
+                "INSERT INTO notifications (user_id, message) VALUES (?, ?)",
+                (user_id, f"Your verification has been rejected. Details: '{feedback or 'No comment'}'")
+            )
+
+            conn.commit()
+
+            # Mock Email
+            send_email_notification(
+                user['email'],
+                "TrekManagement - Application Status Update",
+                f"Hello {user['name']},\n\nWe regret to inform you that your guide/staff verification profile has been rejected. "
+                f"Details: {feedback or 'No comment provided.'}"
+            )
+
+            flash(f"Application for {user['name']} has been rejected.", "error")
+
+    except Exception as e:
+        conn.rollback()
+        flash("An error occurred while updating status.", "error")
+    finally:
+        conn.close()
+
+    return redirect(url_for('admin_verifications'))
 
 @app.errorhandler(403)
 def forbidden(e):

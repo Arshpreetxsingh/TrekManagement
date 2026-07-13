@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Guide & Staff Verifications - Admin - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold" style="color: var(--primary-color);">🧭 Guide & Staff Verification Center</h2>
+        <p class="text-muted">Review credentials, certifications, and approve newly registered field guides or operational staff.</p>
+    </div>
+</div>
+
+<!-- Tabs and Search Filters -->
+<div class="card border-0 shadow-sm p-4 mb-4">
+    <div class="row align-items-center g-3">
+        <div class="col-lg-7 col-md-12">
+            <form action="{{ url_for('admin_verifications') }}" method="GET" class="row g-2">
+                <div class="col-sm-5">
+                    <input type="text" name="search" class="form-control" placeholder="Search name or username..." value="{{ search_query or '' }}">
+                </div>
+                <div class="col-sm-3">
+                    <select name="status" class="form-select">
+                        <option value="">Pending Approval</option>
+                        <option value="Under Review" {% if status_filter == 'Under Review' %}selected{% endif %}>Under Review</option>
+                        <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending Form</option>
+                        <option value="Changes Requested" {% if status_filter == 'Changes Requested' %}selected{% endif %}>Changes Requested</option>
+                        <option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved</option>
+                        <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+                <div class="col-sm-3">
+                    <select name="role" class="form-select">
+                        <option value="">All Roles</option>
+                        <option value="Guide" {% if role_filter == 'Guide' %}selected{% endif %}>Guide</option>
+                        <option value="Staff" {% if role_filter == 'Staff' %}selected{% endif %}>Staff</option>
+                    </select>
+                </div>
+                <div class="col-sm-1">
+                    <button type="submit" class="btn btn-primary w-100">Go</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="col-lg-5 col-md-12 text-lg-end">
+            <span class="badge bg-primary px-3 py-2 fs-6">
+                Active Requests: {{ requests|length }}
+            </span>
+            <a href="{{ url_for('admin_verifications') }}" class="btn btn-outline-secondary btn-sm ms-2">Clear Filters</a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    
+    <!-- Requests Directory Table -->
+    <div class="col-lg-9 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h4 class="m-0 fw-bold text-dark">Verification Directory</h4>
+            </div>
+            <div class="card-body">
+                {% if requests %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Photo</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Experience</th>
+                                <th>Submission Date</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in requests %}
+                            <tr>
+                                <td>
+                                    {% if req.photo_id %}
+                                        <img src="{{ url_for('serve_document', document_id=req.photo_id) }}" class="rounded-circle border" style="width: 48px; height: 48px; object-fit: cover;" alt="Profile photo">
+                                    {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border" style="width: 48px; height: 48px; font-size: 1.5rem;">🧭</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ req.name }}</strong>
+                                    <div class="text-muted small">@{{ req.username }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge {% if req.role == 'Guide' %}bg-info-subtle text-info{% else %}bg-primary-subtle text-primary{% endif %} px-2 py-1">
+                                        {{ req.role }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ req.experience or 0 }} yrs
+                                </td>
+                                <td>
+                                    <span class="small text-muted">{{ req.submitted_date or req.created_at }}</span>
+                                </td>
+                                <td>
+                                    {% if req.status == 'Approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                    {% elif req.status == 'Under Review' %}
+                                        <span class="badge bg-warning text-dark">Under Review</span>
+                                    {% elif req.status == 'Changes Requested' %}
+                                        <span class="badge bg-warning text-dark">Changes Requested</span>
+                                    {% elif req.status == 'Rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Pending Form</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('admin_review_profile', user_id=req.user_id) }}" class="btn btn-primary btn-sm me-1">
+                                        👁️ Review File
+                                    </a>
+                                    
+                                    <!-- Quick approval actions if Under Review -->
+                                    {% if req.status == 'Under Review' %}
+                                    <form action="{{ url_for('admin_verification_action', user_id=req.user_id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="action" value="approve">
+                                        <button type="submit" class="btn btn-success btn-sm">Quick Approve</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <span class="display-3 d-block mb-3">🎉</span>
+                    <h5 class="fw-bold">No matching verification applications found</h5>
+                    <p class="m-0 text-muted">Use filters to check approved history or pending applications.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- History Audit Sidebar -->
+    <div class="col-lg-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="m-0 fw-bold text-dark">📜 Verification History Log</h5>
+            </div>
+            <div class="card-body p-3" style="max-height: 500px; overflow-y: auto;">
+                {% if history %}
+                <div class="list-group list-group-flush">
+                    {% for log in history %}
+                    <div class="list-group-item px-0 py-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold small">{{ log.name }}</span>
+                            <span class="badge {% if log.status == 'Approved' %}bg-success{% elif log.status == 'Changes Requested' %}bg-warning text-dark{% elif log.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %} scale-90">
+                                {{ log.status }}
+                            </span>
+                        </div>
+                        <div class="text-muted small" style="font-size: 0.8rem;">
+                            Reviewed by: <strong>@{{ log.admin_name or 'system' }}</strong>
+                            <div class="font-monospace text-muted" style="font-size: 0.75rem;">{{ log.reviewed_at }}</div>
+                            {% if log.admin_comment %}
+                            <div class="bg-light p-2 rounded mt-2 text-dark font-monospace" style="font-size: 0.75rem;">
+                                {{ log.admin_comment }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-center py-4 text-muted small">No audit actions recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

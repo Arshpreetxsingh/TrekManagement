@@ -19,6 +19,13 @@
 
                 <form action="{{ url_for('register_staff') }}" method="POST">
                     <div class="mb-3">
+                        <label for="role" class="form-label fw-semibold">Application Role</label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="Guide" selected>Trek Guide (Field Operations)</option>
+                            <option value="Staff">Office Staff (Management / Equipment)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label for="username" class="form-label fw-semibold">Username</label>
                         <input type="text" class="form-control" id="username" name="username" placeholder="e.g., rahul_guide" required>
                     </div>

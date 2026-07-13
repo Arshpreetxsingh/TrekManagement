@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}Review Candidate: {{ candidate.name }} - TrekManagement{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <a href="{{ url_for('admin_verifications') }}" class="btn btn-outline-dark btn-sm mb-3">&larr; Back to Directory</a>
+        <h2 class="fw-bold" style="color: var(--primary-color);">🔍 Verification Dossier: {{ candidate.name }}</h2>
+        <p class="text-muted">Review credentials, verify certifications, and evaluate candidate profile.</p>
+    </div>
+</div>
+
+<div class="row">
+    
+    <!-- Left Column: Detailed Profile Form Fields (12 Sections) -->
+    <div class="col-lg-8 mb-4">
+        
+        <!-- Profile Photo Header -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body d-flex align-items-center gap-4">
+                {% if documents.get('profile_photo') %}
+                    <img src="{{ url_for('serve_document', document_id=documents.get('profile_photo').id) }}" class="rounded-circle border img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;" alt="Profile Photo">
+                {% else %}
+                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border" style="width: 120px; height: 120px; font-size: 4rem;">🧭</div>
+                {% endif %}
+                <div>
+                    <h3 class="fw-bold mb-1">{{ candidate.name }}</h3>
+                    <p class="text-muted mb-2">@{{ candidate.username }} &bull; Applied for <strong>{{ candidate.role }}</strong></p>
+                    <span class="badge {% if candidate.status == 'Approved' %}bg-success{% elif candidate.status == 'Under Review' %}bg-warning text-dark{% elif candidate.status == 'Changes Requested' %}bg-warning text-dark{% elif candidate.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %} fs-6 py-2 px-3">
+                        Status: {{ candidate.status }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 1 & 2: Personal & ID Details -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold m-0 text-primary">👤 Personal & Identity Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-4">
+                        <span class="small text-muted d-block">Phone Number</span>
+                        <strong>{{ profile.phone or candidate.phone or 'N/A' }}</strong>
+                    </div>
+                    <div class="col-sm-4">
+                        <span class="small text-muted d-block">Email Address</span>
+                        <strong>{{ candidate.email or 'N/A' }}</strong>
+                    </div>
+                    <div class="col-sm-4">
+                        <span class="small text-muted d-block">Date of Birth</span>
+                        <strong>{{ profile.dob or 'N/A' }}</strong>
+                    </div>
+                    <div class="col-sm-4">
+                        <span class="small text-muted d-block">Gender</span>
+                        <strong>{{ profile.gender or 'N/A' }}</strong>
+                    </div>
+                    <div class="col-sm-4">
+                        <span class="small text-muted d-block">Government ID Type</span>
+                        <strong>{{ documents.get('id_proof').verification_status or 'N/A' if documents.get('id_proof') else 'N/A' }} Aadhaar/ID</strong>
+                    </div>
+                    <div class="col-sm-12">
+                        <span class="small text-muted d-block mb-1">Government ID Document</span>
+                        {% if documents.get('id_proof') %}
+                            <div class="d-flex align-items-center gap-3 bg-light p-2 rounded border">
+                                <span class="fs-4">📄</span>
+                                <div class="me-auto">
+                                    <div class="small fw-semibold">{{ documents.get('id_proof').file_url }}</div>
+                                    <span class="badge bg-secondary scale-90">ID Proof</span>
+                                </div>
+                                <a href="{{ url_for('serve_document', document_id=documents.get('id_proof').id) }}" target="_blank" class="btn btn-primary btn-sm">View File</a>
+                            </div>
+                        {% else %}
+                            <div class="text-danger small">⚠️ No Government ID document uploaded.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3 & 4: Address & Emergency -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold m-0 text-primary">🏠 Address & Emergency Contacts</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 border-end">
+                        <h6 class="fw-bold text-muted mb-2">Residential Address</h6>
+                        <p class="m-0 text-dark" style="line-height: 1.6;">
+                            {{ profile.address or 'N/A' }}<br>
+                            {{ profile.city or 'N/A' }}, {{ profile.state or 'N/A' }} - {{ profile.pin_code or 'N/A' }}<br>
+                            <strong>{{ profile.country or 'N/A' }}</strong>
+                        </p>
+                    </div>
+                    <div class="col-md-6 ps-md-4">
+                        <h6 class="fw-bold text-muted mb-2">Emergency Contact Information</h6>
+                        <ul class="list-unstyled m-0">
+                            <li class="mb-2"><strong>Name:</strong> {{ profile.emergency_contact_name or 'N/A' }}</li>
+                            <li class="mb-2"><strong>Relation:</strong> {{ profile.emergency_contact_relation or 'N/A' }}</li>
+                            <li class="mb-2"><strong>Phone Number:</strong> {{ profile.emergency_contact_phone or 'N/A' }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5, 6 & 10: Professional Info, Skills & Biography -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold m-0 text-primary">🧭 Experience & Wilderness Expertise</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-4">
+                        <span class="small text-muted d-block">Years of Experience</span>
+                        <strong class="fs-5">{{ profile.experience or 0 }} Years</strong>
+                    </div>
+                    <div class="col-sm-4">
+                        <span class="small text-muted d-block">Current Club / Org</span>
+                        <strong>{{ profile.organization or 'N/A' }}</strong>
+                    </div>
+                    <div class="col-sm-4">
+                        <span class="small text-muted d-block">Field Specialization</span>
+                        <strong>{{ profile.specialization or 'N/A' }}</strong>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold text-muted mb-2">Competent Skillsets</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if profile.skills %}
+                            {% for skill in profile.skills.split(',') %}
+                                <span class="badge bg-success-subtle text-success fs-7">{{ skill }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted small">No specific checkboxes marked.</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <h6 class="fw-bold text-muted mb-2">Trekking Biography / Summary</h6>
+                    <div class="bg-light p-3 rounded border font-monospace text-dark small" style="white-space: pre-wrap; line-height: 1.5;">
+                        {{ profile.about_me or 'No biography provided by applicant.' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 7 & 11: Certifications & Uploaded Files Grid -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold m-0 text-primary">📁 Certification Credentials & Files</h5>
+            </div>
+            <div class="card-body">
+                
+                <!-- Mandatory Additional Files -->
+                <h6 class="fw-bold text-muted mb-2">Required Work Files</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="bg-light p-3 rounded border d-flex align-items-center gap-3">
+                            <span class="fs-3">📄</span>
+                            <div class="me-auto">
+                                <div class="fw-bold small">Resume / CV</div>
+                                {% if documents.get('resume') %}
+                                    <span class="text-success small" style="font-size: 0.75rem;">Uploaded</span>
+                                {% else %}
+                                    <span class="text-danger small" style="font-size: 0.75rem;">Missing *</span>
+                                {% endif %}
+                            </div>
+                            {% if documents.get('resume') %}
+                                <a href="{{ url_for('serve_document', document_id=documents.get('resume').id) }}" target="_blank" class="btn btn-outline-primary btn-sm px-3">View</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-light p-3 rounded border d-flex align-items-center gap-3">
+                            <span class="fs-3">📄</span>
+                            <div class="me-auto">
+                                <div class="fw-bold small">Medical Fitness Cert</div>
+                                {% if documents.get('medical_fitness') %}
+                                    <span class="text-success small" style="font-size: 0.75rem;">Uploaded</span>
+                                {% else %}
+                                    <span class="text-danger small" style="font-size: 0.75rem;">Missing *</span>
+                                {% endif %}
+                            </div>
+                            {% if documents.get('medical_fitness') %}
+                                <a href="{{ url_for('serve_document', document_id=documents.get('medical_fitness').id) }}" target="_blank" class="btn btn-outline-primary btn-sm px-3">View</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Certificates Checklist -->
+                <h6 class="fw-bold text-muted mb-2">Wilderness Certificates Uploaded</h6>
+                <div class="list-group list-group-flush mb-3">
+                    {% set cert_types = [
+                        ('cert_first_aid', 'First Aid Certificate'),
+                        ('cert_mountaineering', 'Mountaineering Certification'),
+                        ('cert_adventure', 'Adventure Training Certificate'),
+                        ('cert_rescue', 'Rescue Training Certificate'),
+                        ('cert_other', 'Other Certificates'),
+                        ('experience_cert', 'Experience Certificate'),
+                        ('police_verification', 'Police Verification (Optional)')
+                    ] %}
+                    {% for db_label, human_name in cert_types %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                        <div>
+                            <span class="me-2">{% if documents.get(db_label) %}✔{% else %}⬜{% endif %}</span>
+                            <span class="fw-semibold small">{{ human_name }}</span>
+                        </div>
+                        {% if documents.get(db_label) %}
+                            <a href="{{ url_for('serve_document', document_id=documents.get(db_label).id) }}" target="_blank" class="btn btn-outline-secondary btn-sm" style="font-size: 0.8rem;">View Document</a>
+                        {% else %}
+                            <span class="text-muted small">Not provided</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Section 8 & 9: Languages & Availability -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold m-0 text-primary">💬 Language & Schedule Availability</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 border-end">
+                        <h6 class="fw-bold text-muted mb-2">Communicable Languages</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% if profile.languages %}
+                                {% for lang in profile.languages.split(',') %}
+                                    <span class="badge bg-info text-dark fs-7">{{ lang }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted small">No checkboxes selected.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6 ps-md-4">
+                        <h6 class="fw-bold text-muted mb-2">Work Availability Schedules</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% if profile.availability %}
+                                {% for avail in profile.availability.split(',') %}
+                                    <span class="badge bg-secondary fs-7">{{ avail }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted small">No checkboxes selected.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Right Column: Verification Controls & Log History -->
+    <div class="col-lg-4">
+        
+        <!-- Verification Control Board -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold m-0 text-dark">⚙️ Verification Decisions</h5>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted">Review the uploaded documents above carefully. Falsified parameters should result in rejection.</p>
+                
+                <!-- Action Controls -->
+                <div class="d-grid gap-2">
+                    
+                    <form action="{{ url_for('admin_verification_action', user_id=candidate.id) }}" method="POST" class="w-100">
+                        <input type="hidden" name="action" value="approve">
+                        <div class="mb-3">
+                            <label for="feedback_notes" class="form-label fw-semibold small">Approval / Review Notes (Optional)</label>
+                            <textarea class="form-control form-control-sm font-monospace" id="feedback_notes" name="feedback" rows="3" placeholder="Add approval remarks or notes..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 mb-2 py-2">
+                            ✔ Approve Candidate
+                        </button>
+                    </form>
+                    
+                    <button class="btn btn-warning text-dark w-100 mb-2 py-2" data-bs-toggle="modal" data-bs-target="#requestChangesModal">
+                        📝 Request Form Changes
+                    </button>
+                    
+                    <button class="btn btn-outline-danger w-100 py-2" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                        ❌ Decline / Reject Applicant
+                    </button>
+                    
+                </div>
+            </div>
+        </div>
+
+        <!-- Candidate Verification Logs History -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold m-0 text-dark">⏳ Candidate Logs</h5>
+            </div>
+            <div class="card-body p-3" style="max-height: 350px; overflow-y: auto;">
+                {% if history_logs %}
+                    {% for log in history_logs %}
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="badge {% if log.status == 'Approved' %}bg-success{% elif log.status == 'Changes Requested' %}bg-warning text-dark{% elif log.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %} scale-90">
+                                {{ log.status }}
+                            </span>
+                            <span class="small text-muted font-monospace" style="font-size: 0.7rem;">{{ log.reviewed_at }}</span>
+                        </div>
+                        <p class="m-0 text-dark font-monospace" style="font-size: 0.75rem;">
+                            {{ log.admin_comment }}
+                        </p>
+                        <small class="text-muted" style="font-size: 0.7rem;">Reviewed by: @{{ log.admin_name or 'user' }}</small>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="small text-muted text-center m-0">No actions recorded for this candidate.</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Request Changes Modal Overlay -->
+<div class="modal fade" id="requestChangesModal" tabindex="-1" aria-labelledby="requestChangesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin_verification_action', user_id=candidate.id) }}" method="POST">
+                <input type="hidden" name="action" value="request_changes">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-warning" id="requestChangesModalLabel">⚠️ Request Document / Form Changes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Provide descriptive details outlining what fields or documents need to be corrected by the applicant. This comment will be displayed on their dashboard when they log in.</p>
+                    <div class="mb-3">
+                        <label for="changes_feedback" class="form-label fw-bold">Feedback / Instructions for Candidate *</label>
+                        <textarea class="form-control font-monospace" id="changes_feedback" name="feedback" rows="4" placeholder="e.g. Please upload a clearer Aadhaar card scan. The current image is pixelated." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning text-dark">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Decline / Reject Modal Overlay -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin_verification_action', user_id=candidate.id) }}" method="POST">
+                <input type="hidden" name="action" value="reject">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-danger" id="rejectModalLabel">Declining Applicant Request</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-danger fw-semibold">Warning: This action will mark this guide's status as Rejected. They will be barred from resubmitting the form or accessing dashboards.</p>
+                    <div class="mb-3">
+                        <label for="rejection_feedback" class="form-label fw-bold">Rejection Reason (Optional)</label>
+                        <textarea class="form-control font-monospace" id="rejection_feedback" name="feedback" rows="4" placeholder="Provide notes regarding the rejection criteria..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Decline Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

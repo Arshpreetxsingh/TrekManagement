@@ -199,3 +199,101 @@ footer a:hover {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* ==========================================================================
+   GUIDE & STAFF APPROVAL WORKFLOW CUSTOM STYLES
+   ========================================================================== */
+
+/* Step indicators */
+.step-indicator {
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease-in-out;
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--box-shadow-sm);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.step-indicator:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--box-shadow-md);
+}
+
+/* Timeline/Progress tracker */
+.timeline-container {
+    position: relative;
+    padding-left: 10px;
+}
+
+.timeline-step {
+    position: relative;
+    z-index: 2;
+}
+
+.timeline-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 36px;
+    height: calc(100% - 20px);
+    width: 2px;
+    background-color: #dee2e6;
+    z-index: -1;
+}
+
+/* Animations */
+.animate-pulse {
+    animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.08); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-bounce {
+    animation: bounce-animation 1.5s infinite;
+}
+
+@keyframes bounce-animation {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+}
+
+/* File Upload Controls */
+.file-input-wrapper {
+    position: relative;
+    border: 2px dashed #cbd5e1;
+    background-color: #f8fafc;
+    border-radius: var(--border-radius-sm);
+    padding: 1.5rem;
+    text-align: center;
+    transition: border-color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+.file-input-wrapper:hover {
+    border-color: var(--primary-color);
+    background-color: #f1f5f9;
+}
+
+/* Utilities */
+.fs-7 {
+    font-size: 0.8rem !important;
+}
+
+.scale-90 {
+    transform: scale(0.9);
+}
+
+/* Button hover effects */
+.btn-hover-grow {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.btn-hover-grow:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(40, 167, 69, 0.15) !important;
+}
