@@ -409,14 +409,14 @@ def admin_staff():
                 """SELECT u.id as user_id, u.username, u.status, sp.name, sp.contact_details, sp.age, sp.gender, sp.experience, sp.emergency_contact
                    FROM users u
                    JOIN staff_profiles sp ON u.id = sp.user_id
-                   WHERE u.role='Staff' AND u.id = ?""", (int(search_query),)
+                   WHERE u.role='Staff' AND u.status != 'Blacklisted' AND u.id = ?""", (int(search_query),)
             ).fetchall()
         else:
             staff_list = conn.execute(
                 """SELECT u.id as user_id, u.username, u.status, sp.name, sp.contact_details, sp.age, sp.gender, sp.experience, sp.emergency_contact
                    FROM users u
                    JOIN staff_profiles sp ON u.id = sp.user_id
-                   WHERE u.role='Staff' AND (sp.name LIKE ? OR u.username LIKE ?)""",
+                   WHERE u.role='Staff' AND u.status != 'Blacklisted' AND (sp.name LIKE ? OR u.username LIKE ?)""",
                 (f"%{search_query}%", f"%{search_query}%")
             ).fetchall()
     else:
@@ -424,7 +424,7 @@ def admin_staff():
             """SELECT u.id as user_id, u.username, u.status, sp.name, sp.contact_details, sp.age, sp.gender, sp.experience, sp.emergency_contact
                FROM users u
                JOIN staff_profiles sp ON u.id = sp.user_id
-               WHERE u.role='Staff'"""
+               WHERE u.role='Staff' AND u.status != 'Blacklisted'"""
         ).fetchall()
 
     active_guides = conn.execute(
@@ -530,11 +530,11 @@ def admin_users():
 
     if search_query:
         if search_query.isdigit():
-            users_list = conn.execute("SELECT * FROM users WHERE role='Trekker' AND id = ?", (int(search_query),)).fetchall()
+            users_list = conn.execute("SELECT * FROM users WHERE role='Trekker' AND status != 'Blacklisted' AND id = ?", (int(search_query),)).fetchall()
         else:
-            users_list = conn.execute("SELECT * FROM users WHERE role='Trekker' AND username LIKE ?", (f"%{search_query}%",)).fetchall()
+            users_list = conn.execute("SELECT * FROM users WHERE role='Trekker' AND status != 'Blacklisted' AND username LIKE ?", (f"%{search_query}%",)).fetchall()
     else:
-        users_list = conn.execute("SELECT * FROM users WHERE role='Trekker' ORDER BY id DESC").fetchall()
+        users_list = conn.execute("SELECT * FROM users WHERE role='Trekker' AND status != 'Blacklisted' ORDER BY id DESC").fetchall()
 
     conn.close()
     return render_template('admin_users.html', users=users_list, search_query=search_query)
