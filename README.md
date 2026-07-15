@@ -4,6 +4,12 @@ A comprehensive Web Application built with **Flask** and **SQLite** to manage tr
 
 ---
 
+## 📽️ Project Media & Reports
+*   **Project Video Demonstration**: [Watch Video](https://drive.google.com/file/d/1IcTzGOzzTuyhxIVZThqMR8LeeocQ8YRW/view?usp=sharing)
+*   **Project Report**: [Download / View PDF](https://drive.google.com/file/d/1yik1SxrOM8XsPHTICfXtayIKK2S2X3Zy/view?usp=drive_link)
+
+---
+
 ## 🚀 Key Features
 
 ### 👤 Role-Based Access Control (RBAC)

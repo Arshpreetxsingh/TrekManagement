@@ -200,11 +200,9 @@ footer a:hover {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ==========================================================================
-   GUIDE & STAFF APPROVAL WORKFLOW CUSTOM STYLES
-   ========================================================================== */
 
-/* Step indicators */
+
+
 .step-indicator {
     cursor: pointer;
     font-size: 0.85rem;
@@ -221,7 +219,7 @@ footer a:hover {
     box-shadow: var(--box-shadow-md);
 }
 
-/* Timeline/Progress tracker */
+
 .timeline-container {
     position: relative;
     padding-left: 10px;
@@ -243,7 +241,7 @@ footer a:hover {
     z-index: -1;
 }
 
-/* Animations */
+
 .animate-pulse {
     animation: pulse-animation 2s infinite;
 }
@@ -263,7 +261,7 @@ footer a:hover {
     50% { transform: translateY(-12px); }
 }
 
-/* File Upload Controls */
+
 .file-input-wrapper {
     position: relative;
     border: 2px dashed #cbd5e1;
@@ -279,7 +277,7 @@ footer a:hover {
     background-color: #f1f5f9;
 }
 
-/* Utilities */
+
 .fs-7 {
     font-size: 0.8rem !important;
 }
@@ -288,7 +286,7 @@ footer a:hover {
     transform: scale(0.9);
 }
 
-/* Button hover effects */
+
 .btn-hover-grow {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }

@@ -13,10 +13,10 @@
 
 <div class="row">
     
-    <!-- Left Column: Detailed Profile Form Fields (12 Sections) -->
+    
     <div class="col-lg-8 mb-4">
         
-        <!-- Profile Photo Header -->
+        
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body d-flex align-items-center gap-4">
                 {% if documents.get('profile_photo') %}
@@ -34,7 +34,7 @@
             </div>
         </div>
 
-        <!-- Section 1 & 2: Personal & ID Details -->
+        
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3">
                 <h5 class="fw-bold m-0 text-primary">👤 Personal & Identity Details</h5>
@@ -80,7 +80,7 @@
             </div>
         </div>
 
-        <!-- Section 3 & 4: Address & Emergency -->
+        
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3">
                 <h5 class="fw-bold m-0 text-primary">🏠 Address & Emergency Contacts</h5>
@@ -107,7 +107,7 @@
             </div>
         </div>
 
-        <!-- Section 5, 6 & 10: Professional Info, Skills & Biography -->
+        
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3">
                 <h5 class="fw-bold m-0 text-primary">🧭 Experience & Wilderness Expertise</h5>
@@ -150,14 +150,14 @@
             </div>
         </div>
 
-        <!-- Section 7 & 11: Certifications & Uploaded Files Grid -->
+        
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3">
                 <h5 class="fw-bold m-0 text-primary">📁 Certification Credentials & Files</h5>
             </div>
             <div class="card-body">
                 
-                <!-- Mandatory Additional Files -->
+                
                 <h6 class="fw-bold text-muted mb-2">Required Work Files</h6>
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
@@ -194,7 +194,7 @@
                     </div>
                 </div>
 
-                <!-- Training Certificates Checklist -->
+                
                 <h6 class="fw-bold text-muted mb-2">Wilderness Certificates Uploaded</h6>
                 <div class="list-group list-group-flush mb-3">
                     {% set cert_types = [
@@ -224,7 +224,7 @@
             </div>
         </div>
 
-        <!-- Section 8 & 9: Languages & Availability -->
+        
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3">
                 <h5 class="fw-bold m-0 text-primary">💬 Language & Schedule Availability</h5>
@@ -261,10 +261,10 @@
 
     </div>
 
-    <!-- Right Column: Verification Controls & Log History -->
+    
     <div class="col-lg-4">
         
-        <!-- Verification Control Board -->
+        
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3">
                 <h5 class="fw-bold m-0 text-dark">⚙️ Verification Decisions</h5>
@@ -272,7 +272,7 @@
             <div class="card-body">
                 <p class="small text-muted">Review the uploaded documents above carefully. Falsified parameters should result in rejection.</p>
                 
-                <!-- Action Controls -->
+                
                 <div class="d-grid gap-2">
                     
                     <form action="{{ url_for('admin_verification_action', user_id=candidate.id) }}" method="POST" class="w-100">
@@ -298,7 +298,7 @@
             </div>
         </div>
 
-        <!-- Candidate Verification Logs History -->
+        
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3">
                 <h5 class="fw-bold m-0 text-dark">⏳ Candidate Logs</h5>
@@ -328,7 +328,7 @@
     </div>
 </div>
 
-<!-- Request Changes Modal Overlay -->
+
 <div class="modal fade" id="requestChangesModal" tabindex="-1" aria-labelledby="requestChangesModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -354,7 +354,7 @@
     </div>
 </div>
 
-<!-- Decline / Reject Modal Overlay -->
+
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

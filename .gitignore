@@ -22,3 +22,8 @@ env/
 # Runtime uploads & logs
 email_logs.txt
 static/uploads/
+
+# Temporary and Lock Files
+~$*
+*.tmp
+

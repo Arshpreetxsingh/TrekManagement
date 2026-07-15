@@ -10,7 +10,7 @@
     </div>
 </div>
 
-<!-- Tabs and Search Filters -->
+
 <div class="card border-0 shadow-sm p-4 mb-4">
     <div class="row align-items-center g-3">
         <div class="col-lg-7 col-md-12">
@@ -52,7 +52,7 @@
 
 <div class="row">
     
-    <!-- Requests Directory Table -->
+    
     <div class="col-lg-9 mb-4">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3">
@@ -116,7 +116,7 @@
                                         👁️ Review File
                                     </a>
                                     
-                                    <!-- Quick approval actions if Under Review -->
+                                    
                                     {% if req.status == 'Under Review' %}
                                     <form action="{{ url_for('admin_verification_action', user_id=req.user_id) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="action" value="approve">
@@ -140,7 +140,7 @@
         </div>
     </div>
 
-    <!-- History Audit Sidebar -->
+    
     <div class="col-lg-3">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white py-3">
