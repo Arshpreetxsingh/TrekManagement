@@ -5,7 +5,6 @@ A comprehensive Web Application built with **Flask** and **SQLite** to manage tr
 ---
 
 ## 📽️ Project Media & Reports
-*   **Project Video Demonstration**: [Watch Video](https://drive.google.com/file/d/1IcTzGOzzTuyhxIVZThqMR8LeeocQ8YRW/view?usp=sharing)
 *   **Project Report**: [Download / View PDF](https://drive.google.com/file/d/1yik1SxrOM8XsPHTICfXtayIKK2S2X3Zy/view?usp=drive_link)
 
 ---
@@ -242,4 +241,3 @@ Open `http://127.0.0.1:5000` in your web browser.
 The application automatically creates default administrative and demo details on startup:
 *   **Admin Username**: `admin`
 *   **Admin Password**: `admin123`
-*   **Contact Helpline**: `+91 98765 43210` (Chandigarh Office Desk)
